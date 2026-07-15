@@ -1,67 +1,183 @@
-import Image from "next/image";
+import {
+  Column,
+  Flex,
+  Row,
+  Heading,
+  Text,
+  Button,
+  Card,
+  Badge,
+  Icon,
+} from "@once-ui-system/core";
 
 const Home = () => {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <Column fillWidth padding="160" horizontal="center" gap="80">
+      {/* ── Hero section ── */}
+      <Column
+        as="section"
+        fillWidth
+        maxWidth={640}
+        horizontal="center"
+        gap="24"
+        center
+      >
+        <Badge icon="sparkle" arrow href="#">
+          New release v1.7
+        </Badge>
+
+        <Heading
+          as="h1"
+          variant="display-strong-l"
+          align="center"
+          wrap="balance"
+        >
+          Build faster with Once UI
+        </Heading>
+
+        <Text
+          as="p"
+          variant="body-default-l"
+          onBackground="neutral-medium"
+          align="center"
+          wrap="balance"
+        >
+          An open-source design system for the AI-native era. Deploy fully
+          functional apps in minutes or build custom solutions with less code.
+        </Text>
+
+        <Row gap="16" horizontal="center" wrap>
+          <Button variant="primary" size="l" label="Get started" arrowIcon />
+          <Button
+            variant="secondary"
+            size="l"
+            label="View on GitHub"
+            href="#"
+          />
+        </Row>
+      </Column>
+
+      {/* ── Features section ── */}
+      <Flex
+        as="section"
+        fillWidth
+        direction="row"
+        wrap
+        horizontal="center"
+        gap="24"
+        maxWidth={960}
+      >
+        {features.map((feature) => (
+          <Card
+            key={feature.title}
+            fillWidth
+            padding="24"
+            radius="l"
+            border="neutral-alpha-medium"
+            borderStyle="solid"
+            borderWidth={1}
+            style={{ flex: "1 1 280px" }}
+          >
+            <Column gap="12">
+              <Flex
+                horizontal="center"
+                vertical="center"
+                width={40}
+                height={40}
+                radius="m"
+                background="brand-alpha-medium"
+              >
+                <Icon
+                  name={feature.icon}
+                  size="s"
+                  onBackground="brand-medium"
+                />
+              </Flex>
+              <Heading as="h3" variant="heading-strong-m">
+                {feature.title}
+              </Heading>
+              <Text variant="body-default-s" onBackground="neutral-medium">
+                {feature.description}
+              </Text>
+            </Column>
+          </Card>
+        ))}
+      </Flex>
+
+      {/* ── CTA section ── */}
+      <Column
+        as="section"
+        fillWidth
+        maxWidth={640}
+        horizontal="center"
+        gap="16"
+        center
+        padding="48"
+        radius="l"
+        background="brand-alpha-weak"
+        border="brand-alpha-medium"
+        borderStyle="solid"
+        borderWidth={1}
+      >
+        <Heading as="h2" variant="heading-strong-l" align="center">
+          Ready to get started?
+        </Heading>
+        <Text
+          variant="body-default-m"
+          onBackground="neutral-medium"
+          align="center"
+        >
+          Install Once UI in your project and start building.
+        </Text>
+        <Button
+          variant="primary"
+          size="l"
+          label="Install Now"
+          arrowIcon
+          href="#"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </Column>
+    </Column>
   );
 };
+
+const features = [
+  {
+    icon: "sparkle" as const,
+    title: "100+ Components",
+    description:
+      "A comprehensive library of accessible, customizable components built for modern React and Next.js applications.",
+  },
+  {
+    icon: "eyeDropper" as const,
+    title: "Semantic Tokens",
+    description:
+      "Design tokens for colors, spacing, typography, and more. Consistent theming across your entire application.",
+  },
+  {
+    icon: "computer" as const,
+    title: "Responsive by Default",
+    description:
+      "Every component is responsive out of the box. Breakpoint props for fine-tuning layouts at any screen size.",
+  },
+  {
+    icon: "light" as const,
+    title: "Light & Dark Mode",
+    description:
+      "Built-in dark mode support with system preference detection. Seamless transitions between themes.",
+  },
+  {
+    icon: "world" as const,
+    title: "Open Source",
+    description:
+      "MIT-licensed core components. Free to use in personal and commercial projects alike.",
+  },
+  {
+    icon: "gift" as const,
+    title: "Pro Templates",
+    description:
+      "Pre-built deployment-ready templates and copy-paste blocks for rapid application development.",
+  },
+];
 
 export default Home;
