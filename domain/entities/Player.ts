@@ -131,12 +131,19 @@ export class Player {
     this.registerGames(gamesWon, gamesPlayed);
   }
 
+  /**
+   * Awards a bye: 3 match points plus a 2-0 game record. The 2-0 game record
+   * is required by official Swiss tiebreaker rules so that a bye correctly
+   * contributes to the player's own game-win percentage (KTS behavior).
+   */
   recordBye(): void {
     if (this.hadBye) {
       throw new Error(`Player ${this.id} has already received a bye`);
     }
     this.points += 3;
     this.hadBye = true;
+    this.gamesWon += 2;
+    this.gamesPlayed += 2;
   }
 
   revertMatchResult(
@@ -157,6 +164,8 @@ export class Player {
     }
     this.points -= 3;
     this.hadBye = false;
+    this.gamesWon -= 2;
+    this.gamesPlayed -= 2;
   }
 
   drop(): void {

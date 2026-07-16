@@ -88,6 +88,16 @@ describe("Player bye handling", () => {
     expect(player.hasHadBye()).toBe(true);
   });
 
+  it("awards a 2-0 game record along with the bye (for game-win percentage purposes)", () => {
+    const player = Player.create("p1", "Ash");
+
+    player.recordBye();
+
+    expect(player.getGamesWon()).toBe(2);
+    expect(player.getGamesPlayed()).toBe(2);
+    expect(player.getGameWinPercentage()).toBe(1);
+  });
+
   it("throws if the player already had a bye", () => {
     const player = Player.create("p1", "Ash");
     player.recordBye();
@@ -139,6 +149,17 @@ describe("Player rollback", () => {
 
     expect(player.getPoints()).toBe(0);
     expect(player.hasHadBye()).toBe(false);
+  });
+
+  it("reverting a bye also removes the 2-0 game record it granted", () => {
+    const player = Player.create("p1", "Ash");
+    player.recordMatchWin("p2", 2, 3); // unrelated prior game history should be untouched
+    player.recordBye();
+
+    player.revertBye();
+
+    expect(player.getGamesWon()).toBe(2);
+    expect(player.getGamesPlayed()).toBe(3);
   });
 
   it("throws when reverting a bye that was never given", () => {
