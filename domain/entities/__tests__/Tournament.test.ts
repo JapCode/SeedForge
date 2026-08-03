@@ -460,6 +460,63 @@ describe("Tournament.complete", () => {
   });
 });
 
+describe("Tournament.revertCompletion", () => {
+  it("reverts back to swiss when the tournament had no top cut configured", () => {
+    const tournament = createTournament({ totalSwissRounds: 1 });
+    registerPlayers(tournament, 2);
+    tournament.startSwissRounds();
+    const m1 = Match.createPairing("m1", 1, 1, "p1", "p2");
+    m1.reportWin("p1", 2, 0);
+    tournament.addRound(Round.create(1, [m1]));
+    tournament.completeRound(1);
+    tournament.complete();
+
+    tournament.revertCompletion();
+
+    expect(tournament.getPhase()).toBe("swiss");
+  });
+
+  it("reverts back to top_cut when the tournament had a top cut configured", () => {
+    const tournament = createTournament({ totalSwissRounds: 1, topCutSize: 4 });
+    const players = registerPlayers(tournament, 4);
+    tournament.startSwissRounds();
+    const m1 = Match.createPairing(
+      "m1",
+      1,
+      1,
+      players[0].getId(),
+      players[1].getId(),
+    );
+    m1.reportWin(players[0].getId(), 2, 0);
+    const m2 = Match.createPairing(
+      "m2",
+      1,
+      2,
+      players[2].getId(),
+      players[3].getId(),
+    );
+    m2.reportWin(players[2].getId(), 2, 0);
+    tournament.addRound(Round.create(1, [m1, m2]));
+    tournament.completeRound(1);
+    tournament.advanceToTopCut();
+    tournament.complete();
+
+    tournament.revertCompletion();
+
+    expect(tournament.getPhase()).toBe("top_cut");
+  });
+
+  it("throws if the tournament is not completed", () => {
+    const tournament = createTournament({ totalSwissRounds: 1 });
+    registerPlayers(tournament, 2);
+    tournament.startSwissRounds();
+
+    expect(() => tournament.revertCompletion()).toThrow(
+      "is not completed, nothing to revert",
+    );
+  });
+});
+
 describe("Tournament.toProps / fromProps round-trip", () => {
   it("reconstructs an identical tournament from its props", () => {
     const original = createTournament({ totalSwissRounds: 1 });

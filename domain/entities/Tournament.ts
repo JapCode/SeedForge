@@ -286,6 +286,21 @@ export class Tournament {
     this.phase = "completed";
   }
 
+  /**
+   * Reverts a completed tournament back to whichever phase it must have
+   * completed from: "top_cut" if a top cut was configured (the only way
+   * complete() allows finishing is via a decided bracket final), or "swiss"
+   * otherwise. Used when the Top Cut final's result needs to be undone.
+   */
+  revertCompletion(): void {
+    if (this.phase !== "completed") {
+      throw new Error(
+        `Tournament ${this.id} is not completed, nothing to revert`,
+      );
+    }
+    this.phase = this.topCutSize !== null ? "top_cut" : "swiss";
+  }
+
   toProps(): TournamentProps {
     return {
       id: this.id,

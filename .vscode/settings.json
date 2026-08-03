@@ -27,5 +27,6 @@
 
   "[typescriptreact]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  }
+  },
+  "js/ts.experimental.useTsgo": false
 }
