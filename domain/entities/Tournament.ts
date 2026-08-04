@@ -19,6 +19,7 @@ export interface TournamentProps {
   ruleset: TournamentRuleset;
   players: Player[];
   rounds: Round[];
+  shareToken: string | null;
 }
 
 export class Tournament {
@@ -31,6 +32,7 @@ export class Tournament {
   private readonly ruleset: TournamentRuleset;
   private players: Player[];
   private rounds: Round[];
+  private shareToken: string | null;
 
   private constructor(props: TournamentProps) {
     this.id = props.id;
@@ -42,6 +44,7 @@ export class Tournament {
     this.ruleset = props.ruleset;
     this.players = props.players;
     this.rounds = props.rounds;
+    this.shareToken = props.shareToken;
   }
 
   static create(params: {
@@ -74,6 +77,7 @@ export class Tournament {
       ruleset: params.ruleset ?? TournamentRuleset.current(),
       players: [],
       rounds: [],
+      shareToken: null,
     });
   }
 
@@ -107,6 +111,20 @@ export class Tournament {
 
   getRuleset(): TournamentRuleset {
     return this.ruleset;
+  }
+
+  getShareToken(): string | null {
+    return this.shareToken;
+  }
+
+  /**
+   * Assigns the public read-only share token. Unconditional by design —
+   * whether to reuse an existing token instead of overwriting it is an
+   * application-layer decision (see the ShareTournament use-case), not a
+   * domain invariant.
+   */
+  setShareToken(token: string): void {
+    this.shareToken = token;
   }
 
   getPlayers(): readonly Player[] {
@@ -187,10 +205,6 @@ export class Tournament {
     this.phase = "swiss";
   }
 
-  /**
-   * Adds a new round. Rounds must be added sequentially, and the previous
-   * round (if any) must be completed first.
-   */
   addRound(round: Round): void {
     if (this.phase !== "swiss") {
       throw new Error("Rounds can only be added during the swiss phase");
@@ -222,12 +236,6 @@ export class Tournament {
     this.getRound(roundNumber).complete();
   }
 
-  /**
-   * Reverts a completed round back to pending. This only flips the round's own
-   * status — reverting each match's result and the affected players' stats is
-   * the responsibility of the RevertRound use-case, which should call this
-   * after (or before) undoing the individual match results.
-   */
   revertRoundCompletion(roundNumber: RoundNumber): void {
     const round = this.getRound(roundNumber);
     if (round.getRoundNumber() !== this.rounds.length) {
@@ -286,12 +294,6 @@ export class Tournament {
     this.phase = "completed";
   }
 
-  /**
-   * Reverts a completed tournament back to whichever phase it must have
-   * completed from: "top_cut" if a top cut was configured (the only way
-   * complete() allows finishing is via a decided bracket final), or "swiss"
-   * otherwise. Used when the Top Cut final's result needs to be undone.
-   */
   revertCompletion(): void {
     if (this.phase !== "completed") {
       throw new Error(
@@ -312,6 +314,7 @@ export class Tournament {
       ruleset: this.ruleset,
       players: [...this.players],
       rounds: [...this.rounds],
+      shareToken: this.shareToken,
     };
   }
 }

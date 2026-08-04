@@ -12,6 +12,15 @@ export class InMemoryTournamentRepository implements TournamentRepository {
     return this.tournaments.get(id) ?? null;
   }
 
+  async findByShareToken(token: string): Promise<Tournament | null> {
+    for (const tournament of this.tournaments.values()) {
+      if (tournament.getShareToken() === token) {
+        return tournament;
+      }
+    }
+    return null;
+  }
+
   async save(tournament: Tournament): Promise<void> {
     this.tournaments.set(tournament.getId(), tournament);
   }
@@ -34,19 +43,15 @@ export class InMemoryTopCutBracketRepository implements TopCutBracketRepository 
   }
 }
 
+interface RecordedLog {
+  message: string;
+  context?: Record<string, unknown>;
+}
+
 export class RecordingLogger implements Logger {
-  readonly infoLogs: Array<{
-    message: string;
-    context?: Record<string, unknown>;
-  }> = [];
-  readonly warnLogs: Array<{
-    message: string;
-    context?: Record<string, unknown>;
-  }> = [];
-  readonly errorLogs: Array<{
-    message: string;
-    context?: Record<string, unknown>;
-  }> = [];
+  readonly infoLogs: RecordedLog[] = [];
+  readonly warnLogs: RecordedLog[] = [];
+  readonly errorLogs: RecordedLog[] = [];
 
   info(message: string, context?: Record<string, unknown>): void {
     this.infoLogs.push({ message, context });
@@ -61,7 +66,6 @@ export class RecordingLogger implements Logger {
   }
 }
 
-/** Generates predictable, sequential ids: "id-1", "id-2", ... */
 export class SequentialIdGenerator implements IdGenerator {
   private counter = 0;
 
