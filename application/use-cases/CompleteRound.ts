@@ -18,14 +18,14 @@ export interface CompleteRoundCommand {
 export class CompleteRound {
   constructor(
     private readonly tournamentRepository: TournamentRepository,
-    private readonly logger: Logger
+    private readonly logger: Logger,
   ) {}
 
   async execute(command: CompleteRoundCommand): Promise<void> {
     const tournament = await loadOwnedTournament(
       this.tournamentRepository,
       command.tournamentId,
-      command.requestingUserId
+      command.requestingUserId,
     );
 
     tournament.completeRound(command.roundNumber);

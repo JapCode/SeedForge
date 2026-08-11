@@ -27,7 +27,7 @@ describe.skipIf(!(state.dbOk && state.hasSchema && state.hasExistingData))(
         // No shareable tournament exists; nothing to verify beyond counts.
         return;
       }
-      const token = rows[0].share_token;
+      const token = rows[0].share_token as string;
       const tournament = await repo.findByShareToken(token);
       expect(tournament).not.toBeNull();
       expect(tournament!.getShareToken()).toBe(token);

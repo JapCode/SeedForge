@@ -33,6 +33,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "domain/entities/Round · TS"  ],
+  ],
   "exclude": ["node_modules"]
 }

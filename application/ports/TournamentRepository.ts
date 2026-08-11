@@ -18,5 +18,6 @@ export class TournamentConcurrencyError extends Error {
 export interface TournamentRepository {
   findById(id: TournamentId): Promise<Tournament | null>;
   findByShareToken(token: string): Promise<Tournament | null>;
+  findByOwnerId(ownerId: string): Promise<Tournament[]>;
   save(tournament: Tournament): Promise<void>;
 }

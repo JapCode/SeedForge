@@ -9,133 +9,151 @@ import {
   Badge,
   Icon,
 } from "@once-ui-system/core";
+import { SessionNav } from "./_components/SessionNav";
 
 const Home = () => {
   return (
-    <Column fillWidth padding="160" horizontal="center" gap="80">
-      {/* ── Hero section ── */}
-      <Column
-        as="section"
-        fillWidth
-        maxWidth={640}
-        horizontal="center"
-        gap="24"
-        center
-      >
-        <Badge icon="sparkle" arrow href="#">
-          New release v1.7
-        </Badge>
-
-        <Heading
-          as="h1"
-          variant="display-strong-l"
-          align="center"
-          wrap="balance"
-        >
-          Build faster with Once UI
-        </Heading>
-
-        <Text
-          as="p"
-          variant="body-default-l"
-          onBackground="neutral-medium"
-          align="center"
-          wrap="balance"
-        >
-          An open-source design system for the AI-native era. Deploy fully
-          functional apps in minutes or build custom solutions with less code.
-        </Text>
-
-        <Row gap="16" horizontal="center" wrap>
-          <Button variant="primary" size="l" label="Get started" arrowIcon />
-          <Button
-            variant="secondary"
-            size="l"
-            label="View on GitHub"
-            href="#"
-          />
-        </Row>
-      </Column>
-
-      {/* ── Features section ── */}
+    <Column fillWidth>
+      {/* ── Header ── */}
       <Flex
-        as="section"
+        as="header"
         fillWidth
-        direction="row"
-        wrap
-        horizontal="center"
-        gap="24"
-        maxWidth={960}
+        paddingX="32"
+        paddingY="16"
+        horizontal="between"
+        vertical="center"
       >
-        {features.map((feature) => (
-          <Card
-            key={feature.title}
-            fillWidth
-            padding="24"
-            radius="l"
-            border="neutral-alpha-medium"
-            borderStyle="solid"
-            borderWidth={1}
-            style={{ flex: "1 1 280px" }}
-          >
-            <Column gap="12">
-              <Flex
-                horizontal="center"
-                vertical="center"
-                width={40}
-                height={40}
-                radius="m"
-                background="brand-alpha-medium"
-              >
-                <Icon
-                  name={feature.icon}
-                  size="s"
-                  onBackground="brand-medium"
-                />
-              </Flex>
-              <Heading as="h3" variant="heading-strong-m">
-                {feature.title}
-              </Heading>
-              <Text variant="body-default-s" onBackground="neutral-medium">
-                {feature.description}
-              </Text>
-            </Column>
-          </Card>
-        ))}
+        <Heading as="p" variant="heading-strong-m">
+          Seed Forge
+        </Heading>
+        <SessionNav />
       </Flex>
 
-      {/* ── CTA section ── */}
-      <Column
-        as="section"
-        fillWidth
-        maxWidth={640}
-        horizontal="center"
-        gap="16"
-        center
-        padding="48"
-        radius="l"
-        background="brand-alpha-weak"
-        border="brand-alpha-medium"
-        borderStyle="solid"
-        borderWidth={1}
-      >
-        <Heading as="h2" variant="heading-strong-l" align="center">
-          Ready to get started?
-        </Heading>
-        <Text
-          variant="body-default-m"
-          onBackground="neutral-medium"
-          align="center"
+      <Column fillWidth padding="160" horizontal="center" gap="80">
+        {/* ── Hero section ── */}
+        <Column
+          as="section"
+          fillWidth
+          maxWidth={640}
+          horizontal="center"
+          gap="24"
+          center
         >
-          Install Once UI in your project and start building.
-        </Text>
-        <Button
-          variant="primary"
-          size="l"
-          label="Install Now"
-          arrowIcon
-          href="#"
-        />
+          <Badge icon="sparkle" arrow href="#">
+            New release v1.7
+          </Badge>
+
+          <Heading
+            as="h1"
+            variant="display-strong-l"
+            align="center"
+            wrap="balance"
+          >
+            Build faster with Once UI
+          </Heading>
+
+          <Text
+            as="p"
+            variant="body-default-l"
+            onBackground="neutral-medium"
+            align="center"
+            wrap="balance"
+          >
+            An open-source design system for the AI-native era. Deploy fully
+            functional apps in minutes or build custom solutions with less code.
+          </Text>
+
+          <Row gap="16" horizontal="center" wrap>
+            <Button variant="primary" size="l" label="Get started" arrowIcon />
+            <Button
+              variant="secondary"
+              size="l"
+              label="View on GitHub"
+              href="#"
+            />
+          </Row>
+        </Column>
+
+        {/* ── Features section ── */}
+        <Flex
+          as="section"
+          fillWidth
+          direction="row"
+          wrap
+          horizontal="center"
+          gap="24"
+          maxWidth={960}
+        >
+          {features.map((feature) => (
+            <Card
+              key={feature.title}
+              fillWidth
+              padding="24"
+              radius="l"
+              border="neutral-alpha-medium"
+              borderStyle="solid"
+              borderWidth={1}
+              style={{ flex: "1 1 280px" }}
+            >
+              <Column gap="12">
+                <Flex
+                  horizontal="center"
+                  vertical="center"
+                  width={40}
+                  height={40}
+                  radius="m"
+                  background="brand-alpha-medium"
+                >
+                  <Icon
+                    name={feature.icon}
+                    size="s"
+                    onBackground="brand-medium"
+                  />
+                </Flex>
+                <Heading as="h3" variant="heading-strong-m">
+                  {feature.title}
+                </Heading>
+                <Text variant="body-default-s" onBackground="neutral-medium">
+                  {feature.description}
+                </Text>
+              </Column>
+            </Card>
+          ))}
+        </Flex>
+
+        {/* ── CTA section ── */}
+        <Column
+          as="section"
+          fillWidth
+          maxWidth={640}
+          horizontal="center"
+          gap="16"
+          center
+          padding="48"
+          radius="l"
+          background="brand-alpha-weak"
+          border="brand-alpha-medium"
+          borderStyle="solid"
+          borderWidth={1}
+        >
+          <Heading as="h2" variant="heading-strong-l" align="center">
+            Ready to get started?
+          </Heading>
+          <Text
+            variant="body-default-m"
+            onBackground="neutral-medium"
+            align="center"
+          >
+            Install Once UI in your project and start building.
+          </Text>
+          <Button
+            variant="primary"
+            size="l"
+            label="Install Now"
+            arrowIcon
+            href="#"
+          />
+        </Column>
       </Column>
     </Column>
   );

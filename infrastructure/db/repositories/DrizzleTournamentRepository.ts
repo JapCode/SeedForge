@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Tournament, TournamentId } from "../../../domain/entities/Tournament";
 import {
@@ -45,6 +45,15 @@ export class DrizzleTournamentRepository implements TournamentRepository {
       .limit(1);
     if (rows.length === 0) return null;
     return this.toDomainAndTrackVersion(rows[0]);
+  }
+
+  async findByOwnerId(ownerId: string): Promise<Tournament[]> {
+    const rows = await this.db
+      .select()
+      .from(tournaments)
+      .where(eq(tournaments.ownerId, ownerId))
+      .orderBy(desc(tournaments.updatedAt));
+    return rows.map((row) => this.toDomainAndTrackVersion(row));
   }
 
   async save(tournament: Tournament): Promise<void> {

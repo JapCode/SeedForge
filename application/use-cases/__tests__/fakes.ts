@@ -21,6 +21,12 @@ export class InMemoryTournamentRepository implements TournamentRepository {
     return null;
   }
 
+  async findByOwnerId(ownerId: string): Promise<Tournament[]> {
+    return [...this.tournaments.values()].filter(
+      (t) => t.getOwnerId() === ownerId,
+    );
+  }
+
   async save(tournament: Tournament): Promise<void> {
     this.tournaments.set(tournament.getId(), tournament);
   }

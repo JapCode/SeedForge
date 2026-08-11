@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { auth } from "@/infrastructure/auth/auth";
 import { db } from "@/infrastructure/db/drizzle/client";

@@ -4,16 +4,9 @@ import "@once-ui-system/core/css/tokens.css";
 import "./globals.css";
 
 import classNames from "classnames";
-import {
-  Column,
-  ThemeInit,
-  LayoutProvider,
-  ThemeProvider,
-  DataThemeProvider,
-  ToastProvider,
-  IconProvider,
-} from "@once-ui-system/core";
-import { fonts } from "../resources/once-ui.config";
+import { Column, ThemeInit } from "@once-ui-system/core";
+import { fonts, style } from "../resources/once-ui.config";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -38,42 +31,36 @@ const RootLayout = async ({
       )}
     >
       <head>
+        {/* Pre-hydration theme/style defaults (prevents FOUC). The
+            ThemeProvider in Providers.tsx is the runtime source of truth. */}
         <ThemeInit
           config={{
-            theme: "system",
-            brand: "blue",
-            accent: "indigo",
-            neutral: "gray",
-            solid: "contrast",
-            "solid-style": "flat",
-            border: "playful",
-            surface: "filled",
-            transition: "all",
-            scaling: "100",
+            theme: style.theme,
+            brand: style.brand,
+            accent: style.accent,
+            neutral: style.neutral,
+            solid: style.solid,
+            "solid-style": style.solidStyle,
+            border: style.border,
+            surface: style.surface,
+            transition: style.transition,
+            scaling: style.scaling,
             "viz-style": "gradient",
           }}
         />
       </head>
-      <LayoutProvider>
-        <ThemeProvider>
-          <DataThemeProvider>
-            <ToastProvider>
-              <IconProvider>
-                <Column
-                  background="page"
-                  as="body"
-                  fillWidth
-                  margin="0"
-                  padding="0"
-                  style={{ minHeight: "100vh" }}
-                >
-                  {children}
-                </Column>
-              </IconProvider>
-            </ToastProvider>
-          </DataThemeProvider>
-        </ThemeProvider>
-      </LayoutProvider>
+      <Providers>
+        <Column
+          background="page"
+          as="body"
+          fillWidth
+          margin="0"
+          padding="0"
+          style={{ minHeight: "100vh" }}
+        >
+          {children}
+        </Column>
+      </Providers>
     </Column>
   );
 };

@@ -6,7 +6,15 @@ import {
   integer,
   index,
 } from "drizzle-orm/pg-core";
-import { user } from "../../auth/auth-schema";
+import { user, session, account, verification } from "../../auth/auth-schema";
+
+/**
+ * Re-exported so drizzle-kit sees the Better Auth tables (user/session/
+ * account/verification) and generates migrations for them. The auth adapter
+ * (infrastructure/auth/auth.ts) already uses these at runtime; without the
+ * re-export they'd never get a migration and registration would fail.
+ */
+export { user, session, account, verification };
 
 /**
  * Each row is one Tournament aggregate. `data` holds the full serialized
