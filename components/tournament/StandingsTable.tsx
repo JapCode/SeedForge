@@ -1,6 +1,8 @@
-import { Column, Row, Text, Badge } from "@once-ui-system/core";
+import { Table, Text, Badge, Column } from "@once-ui-system/core";
 import { Tournament } from "@/domain/entities/Tournament";
 import { TiebreakerCalculator } from "@/domain/services/TiebreakerCalculator";
+import { StandingsLegend } from "./StandingsLegend";
+import { HeaderHelp } from "./HeaderHelp";
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
@@ -25,102 +27,91 @@ export const StandingsTable = ({ tournament }: { tournament: Tournament }) => {
   }
 
   return (
-    <Column fillWidth gap="4">
-      <Row fillWidth paddingX="12" paddingY="8" gap="12">
-        <Text
-          variant="label-default-s"
-          onBackground="neutral-weak"
-          style={{ width: "2rem" }}
-        >
-          #
-        </Text>
-        <Text
-          variant="label-default-s"
-          onBackground="neutral-weak"
-          style={{ flex: 1 }}
-        >
-          Jugador
-        </Text>
-        <Text
-          variant="label-default-s"
-          onBackground="neutral-weak"
-          style={{ width: "3rem" }}
-        >
-          Pts
-        </Text>
-        <Text
-          variant="label-default-s"
-          onBackground="neutral-weak"
-          style={{ width: "4rem" }}
-        >
-          OMW%
-        </Text>
-        <Text
-          variant="label-default-s"
-          onBackground="neutral-weak"
-          style={{ width: "4rem" }}
-        >
-          GW%
-        </Text>
-        <Text
-          variant="label-default-s"
-          onBackground="neutral-weak"
-          style={{ width: "4rem" }}
-        >
-          OGW%
-        </Text>
-      </Row>
+    <Column fillWidth gap="16">
+      <Table
+        data={{
+          headers: [
+            { content: "#", key: "position" },
+            { content: "Jugador", key: "player" },
+            { content: "Pts", key: "points" },
+            {
+              content: (
+                <HeaderHelp
+                  label="OMW%"
+                  hint="Porcentaje de victorias de tus rivales · piso 33%"
+                />
+              ),
+              key: "omw",
+            },
+            {
+              content: (
+                <HeaderHelp
+                  label="OGW%"
+                  hint="Porcentaje de victorias de los rivales de tus rivales"
+                />
+              ),
+              key: "ogw",
+            },
+            {
+              content: (
+                <HeaderHelp
+                  label="DDD"
+                  hint="Suma de los cuadrados de las rondas perdidas · menor = mejor"
+                />
+              ),
+              key: "ddd",
+            },
+          ],
+          rows: standings.map((player, index) => {
+            const tiebreakers = tiebreakersById.get(player.getId())!;
+            return [
+              <Text key="pos" variant="body-default-m">
+                {index + 1}
+              </Text>,
+              <Text key="name" variant="body-default-m">
+                {player.getName()}
+                {player.isDropped() && (
+                  <Badge
+                    background="danger-weak"
+                    onBackground="danger-strong"
+                    style={{ marginLeft: "0.5rem" }}
+                  >
+                    Dropeado
+                  </Badge>
+                )}
+              </Text>,
+              <Text key="pts" variant="body-strong-m">
+                {tiebreakers.matchPoints}
+              </Text>,
+              <Text
+                key="omw"
+                variant="body-default-s"
+                onBackground="neutral-weak"
+              >
+                {formatPercent(tiebreakers.opponentsMatchWinPercentage)}
+              </Text>,
+              <Text
+                key="ogw"
+                variant="body-default-s"
+                onBackground="neutral-weak"
+              >
+                {formatPercent(
+                  tiebreakers.opponentsOpponentsMatchWinPercentage,
+                )}
+              </Text>,
+              <Text
+                key="ddd"
+                variant="body-default-s"
+                onBackground="neutral-weak"
+              >
+                {tiebreakers.sumOfSquaresOfLosses}
+              </Text>,
+            ];
+          }),
+        }}
+      />
 
-      {standings.map((player, index) => {
-        const tiebreakers = tiebreakersById.get(player.getId())!;
-        return (
-          <Row
-            key={player.getId()}
-            fillWidth
-            padding="12"
-            radius="m"
-            border
-            gap="12"
-            vertical="center"
-          >
-            <Text variant="body-default-m" style={{ width: "2rem" }}>
-              {index + 1}
-            </Text>
-            <Row gap="8" vertical="center" style={{ flex: 1 }}>
-              <Text variant="body-default-m">{player.getName()}</Text>
-              {player.isDropped() && (
-                <Badge background="danger-weak" onBackground="danger-strong">
-                  Dropeado
-                </Badge>
-              )}
-            </Row>
-            <Text variant="body-strong-m" style={{ width: "3rem" }}>
-              {tiebreakers.matchPoints}
-            </Text>
-            <Text
-              variant="body-default-s"
-              onBackground="neutral-weak"
-              style={{ width: "4rem" }}
-            >
-              {formatPercent(tiebreakers.opponentsMatchWinPercentage)}
-            </Text>
-            <Text
-              variant="body-default-s"
-              onBackground="neutral-weak"
-              style={{ width: "4rem" }}
-            >
-              {formatPercent(tiebreakers.gameWinPercentage)}
-            </Text>
-            <Text
-              variant="body-default-s"
-              onBackground="neutral-weak"
-              style={{ width: "4rem" }}
-            >
-              {formatPercent(tiebreakers.opponentsGameWinPercentage)}
-            </Text>
-          </Row>
-        );
-      })}
+      <StandingsLegend />
     </Column>
   );
 };

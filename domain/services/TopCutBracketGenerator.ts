@@ -7,7 +7,7 @@ export class TopCutBracketGenerator {
   /**
    * Builds the top cut bracket for a tournament that has just finished its
    * swiss rounds. Seeds the qualifying players by final swiss standings
-   * (match points -> OMW% -> GW% -> OGW%, the same order used everywhere
+   * (match points -> OMW% -> OGW% -> DDD, the same order used everywhere
    * else), assigns each qualifier their topCutSeed on the Player entity, and
    * returns the resulting single-elimination bracket.
    */

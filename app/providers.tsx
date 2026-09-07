@@ -1,4 +1,5 @@
 import { style } from "@/resources/once-ui.config";
+import { appIcons } from "@/resources/icon-library";
 import {
   DataThemeProvider,
   IconProvider,
@@ -27,7 +28,7 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
       >
         <DataThemeProvider>
           <ToastProvider>
-            <IconProvider>{children}</IconProvider>
+            <IconProvider icons={appIcons}>{children}</IconProvider>
           </ToastProvider>
         </DataThemeProvider>
       </ThemeProvider>

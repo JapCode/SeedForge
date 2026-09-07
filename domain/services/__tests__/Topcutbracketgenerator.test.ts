@@ -27,11 +27,11 @@ describe("TopCutBracketGenerator.generate", () => {
     // p3 ends up in first place (most points), p1 second, then p2, p4 tied
     // at 0 with no distinguishing tiebreakers (stable order keeps p2 ahead).
     p3.recordMatchWin(p4.getId(), 2, 2);
-    p4.recordMatchLoss(p3.getId(), 0, 2);
+    p4.recordMatchLoss(p3.getId(), 1, 0, 2);
     p1.recordMatchWin(p2.getId(), 2, 2);
-    p2.recordMatchLoss(p1.getId(), 0, 2);
+    p2.recordMatchLoss(p1.getId(), 1, 0, 2);
     p3.recordMatchWin(p1.getId(), 2, 2);
-    p1.recordMatchLoss(p3.getId(), 0, 2);
+    p1.recordMatchLoss(p3.getId(), 2, 0, 2);
 
     const bracket = TopCutBracketGenerator.generate(tournament);
 

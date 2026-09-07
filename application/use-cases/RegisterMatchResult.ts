@@ -62,7 +62,12 @@ export class RegisterMatchResult {
         const totalGames = winnerGames + loserGames;
 
         winner.recordMatchWin(loser.getId(), winnerGames, totalGames);
-        loser.recordMatchLoss(winner.getId(), loserGames, totalGames);
+        loser.recordMatchLoss(
+          winner.getId(),
+          command.roundNumber,
+          loserGames,
+          totalGames,
+        );
         break;
       }
 
@@ -88,8 +93,18 @@ export class RegisterMatchResult {
         const totalGames = player1Games + player2Games;
         // A double loss is, for each player individually, just a loss: no
         // points, but the opponent and games still count toward tiebreakers.
-        player1.recordMatchLoss(player2.getId(), player1Games, totalGames);
-        player2.recordMatchLoss(player1.getId(), player2Games, totalGames);
+        player1.recordMatchLoss(
+          player2.getId(),
+          command.roundNumber,
+          player1Games,
+          totalGames,
+        );
+        player2.recordMatchLoss(
+          player1.getId(),
+          command.roundNumber,
+          player2Games,
+          totalGames,
+        );
         break;
       }
     }

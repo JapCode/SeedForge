@@ -139,24 +139,32 @@ describe("Match.reportDraw (legacy ruleset)", () => {
 });
 
 describe("Match.reportDoubleLoss (current Konami policy)", () => {
-  it("reports a double loss with the tied game score", () => {
+  it("reports a double loss scored 0-0", () => {
     const match = Match.createPairing("m1", 1, 1, "p1", "p2");
 
-    match.reportDoubleLoss(1, 1);
+    match.reportDoubleLoss(0, 0);
 
     expect(match.getResult()).toEqual({
       type: "double_loss",
-      player1Games: 1,
-      player2Games: 1,
+      player1Games: 0,
+      player2Games: 0,
     });
     expect(match.isPending()).toBe(false);
   });
 
-  it("throws if the match already has a result", () => {
+  it("throws when the double loss is not scored 0-0", () => {
     const match = Match.createPairing("m1", 1, 1, "p1", "p2");
-    match.reportDoubleLoss(1, 1);
 
     expect(() => match.reportDoubleLoss(1, 1)).toThrow(
+      "A double loss is always scored 0-0",
+    );
+  });
+
+  it("throws if the match already has a result", () => {
+    const match = Match.createPairing("m1", 1, 1, "p1", "p2");
+    match.reportDoubleLoss(0, 0);
+
+    expect(() => match.reportDoubleLoss(0, 0)).toThrow(
       "already has a reported result",
     );
   });
@@ -164,7 +172,7 @@ describe("Match.reportDoubleLoss (current Konami policy)", () => {
   it("throws when reporting a double loss on a bye match", () => {
     const match = Match.createBye("m1", 1, 1, "p1");
 
-    expect(() => match.reportDoubleLoss(1, 1)).toThrow(
+    expect(() => match.reportDoubleLoss(0, 0)).toThrow(
       "is a bye and cannot report/revert a result",
     );
   });
@@ -192,7 +200,7 @@ describe("Match.revertResult", () => {
 
   it("reverts a double loss back to pending", () => {
     const match = Match.createPairing("m1", 1, 1, "p1", "p2");
-    match.reportDoubleLoss(1, 1);
+    match.reportDoubleLoss(0, 0);
 
     match.revertResult();
 

@@ -17,12 +17,16 @@ export const RegisterPlayerForm = ({
     initialState,
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Clear the input after a successful submission, without wiping it on error
-  // (so the organizer doesn't have to retype a name after a validation failure).
+  // Clear the input and refocus after a successful submission, without wiping
+  // it on error (so the organizer doesn't have to retype a name after a
+  // validation failure). Refocusing keeps rapid back-to-back registration
+  // flowing: type a name, Enter, type the next one.
   useEffect(() => {
     if (!isPending && !state.error) {
       formRef.current?.reset();
+      inputRef.current?.focus();
     }
   }, [isPending, state.error]);
 
@@ -34,6 +38,8 @@ export const RegisterPlayerForm = ({
           name="playerName"
           label="Nombre del jugador"
           required
+          autoFocus
+          ref={inputRef}
         />
         <Button type="submit" disabled={isPending}>
           {isPending ? "Agregando..." : "Agregar jugador"}

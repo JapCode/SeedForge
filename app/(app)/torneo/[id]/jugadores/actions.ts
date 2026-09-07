@@ -37,7 +37,7 @@ export async function registerPlayerAction(
     };
   }
 
-  revalidatePath(`/torneo/${tournamentId}/jugadores`);
+  revalidatePath(`/torneo/${tournamentId}`);
   return { error: null };
 }
 
@@ -58,7 +58,7 @@ export async function unregisterPlayerAction(
         err instanceof Error ? err.message : "No se pudo quitar al jugador.",
     };
   }
-  revalidatePath(`/torneo/${tournamentId}/jugadores`);
+  revalidatePath(`/torneo/${tournamentId}`);
   return { error: null };
 }
 
@@ -79,6 +79,6 @@ export async function dropPlayerAction(
         err instanceof Error ? err.message : "No se pudo dropear al jugador.",
     };
   }
-  revalidatePath(`/torneo/${tournamentId}/jugadores`);
+  revalidatePath(`/torneo/${tournamentId}`);
   return { error: null };
 }

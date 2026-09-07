@@ -69,6 +69,27 @@ describe("CreateTournament", () => {
     expect(tournament.getTopCutSize()).toBe(8);
   });
 
+  it("defaults pairingMode to automatic", async () => {
+    const tournament = await createTournament.execute({
+      ownerId: "u1",
+      name: "Regional YCS",
+      totalSwissRounds: 5,
+    });
+
+    expect(tournament.getPairingMode()).toBe("automatic");
+  });
+
+  it("passes through an explicit manual pairingMode (audit mode)", async () => {
+    const tournament = await createTournament.execute({
+      ownerId: "u1",
+      name: "Audit Cup",
+      totalSwissRounds: 5,
+      pairingMode: "manual",
+    });
+
+    expect(tournament.getPairingMode()).toBe("manual");
+  });
+
   it("logs the creation", async () => {
     await createTournament.execute({
       ownerId: "u1",

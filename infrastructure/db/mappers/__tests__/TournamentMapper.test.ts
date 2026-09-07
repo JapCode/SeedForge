@@ -39,7 +39,7 @@ describe("TournamentMapper", () => {
     const match = Match.createPairing("m1", 1, 1, "p1", "p2");
     match.reportWin("p1", 2, 0);
     tournament.getPlayer("p1").recordMatchWin("p2", 2, 2);
-    tournament.getPlayer("p2").recordMatchLoss("p1", 0, 2);
+    tournament.getPlayer("p2").recordMatchLoss("p1", 1, 0, 2);
     tournament.addRound(Round.create(1, [match]));
     tournament.completeRound(1);
 
@@ -49,6 +49,7 @@ describe("TournamentMapper", () => {
 
     expect(rebuilt.getPlayers()).toHaveLength(2);
     expect(rebuilt.getPlayer("p1").getPoints()).toBe(3);
+    expect(rebuilt.getPlayer("p2").getLostRoundNumbers()).toEqual([1]);
     expect(rebuilt.getRound(1).isCompleted()).toBe(true);
     expect(rebuilt.getRound(1).getMatch("m1").getResult()).toEqual({
       type: "win",
@@ -91,6 +92,38 @@ describe("TournamentMapper", () => {
     expect(rebuilt.getShareToken()).toBe("share-abc");
   });
 
+  it("preserves the pairingMode", () => {
+    const tournament = Tournament.create({
+      id: "t1",
+      ownerId: "u1",
+      name: "Audit Cup",
+      totalSwissRounds: 1,
+      pairingMode: "manual",
+    });
+
+    const rebuilt = TournamentMapper.toDomain(
+      TournamentMapper.toSerializable(tournament),
+    );
+
+    expect(rebuilt.getPairingMode()).toBe("manual");
+  });
+
+  it("defaults pairingMode to automatic for legacy data without the field", () => {
+    const serialized = TournamentMapper.toSerializable(
+      Tournament.create({
+        id: "t1",
+        ownerId: "u1",
+        name: "Cup",
+        totalSwissRounds: 1,
+      }),
+    );
+    delete (serialized as Partial<typeof serialized>).pairingMode;
+
+    const rebuilt = TournamentMapper.toDomain(serialized);
+
+    expect(rebuilt.getPairingMode()).toBe("automatic");
+  });
+
   it("preserves a dropped player's state and topCutSeed", () => {
     const tournament = Tournament.create({
       id: "t1",
@@ -124,7 +157,7 @@ describe("TournamentMapper", () => {
     tournament.startSwissRounds();
 
     const m1 = Match.createPairing("m1", 1, 1, "p1", "p2");
-    m1.reportDoubleLoss(1, 1);
+    m1.reportDoubleLoss(0, 0);
     const bye = Match.createBye("m2", 1, 2, "p3");
     tournament.addRound(Round.create(1, [m1, bye]));
     tournament.completeRound(1);
@@ -134,8 +167,8 @@ describe("TournamentMapper", () => {
 
     expect(rebuilt.getRound(1).getMatch("m1").getResult()).toEqual({
       type: "double_loss",
-      player1Games: 1,
-      player2Games: 1,
+      player1Games: 0,
+      player2Games: 0,
     });
     expect(rebuilt.getRound(1).getMatch("m2").isBye()).toBe(true);
   });

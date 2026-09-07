@@ -101,6 +101,9 @@ describe("RegisterMatchResult", () => {
     expect(loser.hasPlayedAgainst(player1Id)).toBe(true);
     expect(loser.getGamesWon()).toBe(1);
     expect(loser.getGamesPlayed()).toBe(3);
+    // the loser's round is tracked for the DDD tiebreaker
+    expect(loser.getLostRoundNumbers()).toEqual([1]);
+    expect(winner.getLostRoundNumbers()).toEqual([]);
   });
 
   it("marks the match as resolved so the round can be completed afterward", async () => {
@@ -128,7 +131,7 @@ describe("RegisterMatchResult", () => {
     expect(() => persisted!.completeRound(1)).not.toThrow();
   });
 
-  it("registers a double loss: both players get 0 points but the opponent/games still count", async () => {
+  it("registers a double loss: both players get 0 points, no games count, but the opponent still counts", async () => {
     const { tournament, player1Id, player2Id } =
       await setUpTournamentWithRound1(repository, logger, idGenerator);
     const matchId = tournament.getRound(1).getMatches()[0].getId();
@@ -138,7 +141,7 @@ describe("RegisterMatchResult", () => {
       requestingUserId: "u1",
       roundNumber: 1,
       matchId,
-      result: { type: "double_loss", player1Games: 1, player2Games: 1 },
+      result: { type: "double_loss", player1Games: 0, player2Games: 0 },
     });
 
     const persisted = await repository.findById(tournament.getId());
@@ -148,7 +151,11 @@ describe("RegisterMatchResult", () => {
     expect(p1.getPoints()).toBe(0);
     expect(p2.getPoints()).toBe(0);
     expect(p1.hasPlayedAgainst(player2Id)).toBe(true);
-    expect(p1.getGamesPlayed()).toBe(2);
+    expect(p1.getGamesPlayed()).toBe(0);
+    expect(p1.getGamesWon()).toBe(0);
+    // a double loss counts as a lost round for both players (DDD)
+    expect(p1.getLostRoundNumbers()).toEqual([1]);
+    expect(p2.getLostRoundNumbers()).toEqual([1]);
   });
 
   it("registers a draw when the tournament ruleset allows it (legacy)", async () => {

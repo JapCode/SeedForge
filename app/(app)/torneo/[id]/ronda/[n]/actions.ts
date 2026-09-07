@@ -41,6 +41,7 @@ export async function registerMatchResultAction(
     };
   }
   revalidatePath(`/torneo/${tournamentId}/ronda/${roundNumber}`);
+  revalidatePath(`/torneo/${tournamentId}`);
   return { error: null };
 }
 
@@ -66,6 +67,7 @@ export async function revertMatchResultAction(
     };
   }
   revalidatePath(`/torneo/${tournamentId}/ronda/${roundNumber}`);
+  revalidatePath(`/torneo/${tournamentId}`);
   return { error: null };
 }
 
@@ -98,6 +100,28 @@ export async function revertRoundCompletionAction(
   try {
     const userId = await requireUserId();
     await useCases.revertRoundCompletion.execute({
+      tournamentId,
+      requestingUserId: userId,
+      roundNumber,
+    });
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error ? err.message : "No se pudo revertir la ronda.",
+    };
+  }
+  revalidatePath(`/torneo/${tournamentId}/ronda/${roundNumber}`);
+  revalidatePath(`/torneo/${tournamentId}`);
+  return { error: null };
+}
+
+export async function revertRoundForEditAction(
+  tournamentId: string,
+  roundNumber: number,
+): Promise<ActionResult> {
+  try {
+    const userId = await requireUserId();
+    await useCases.revertRoundForEdit.execute({
       tournamentId,
       requestingUserId: userId,
       roundNumber,

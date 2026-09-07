@@ -56,9 +56,23 @@ export class GenerateNextRound {
         command.manualPairings,
       );
     } else if (roundNumber === 1) {
+      // KTS-style initial ranking: the order used for round 1's draw becomes
+      // the persistent tiebreak for fully-tied players in every later round
+      // (standings, pairing and top cut all sort stably over the player
+      // list). An explicit seedOrder replaces the random draw; manual
+      // pairings leave the registration order untouched.
+      if (command.seedOrder) {
+        tournament.reorderPlayers(command.seedOrder);
+      } else {
+        tournament.randomizePlayerOrder();
+      }
       round = SwissPairingService.generateFirstRound(
         tournament.getActivePlayers(),
-        { seedOrder: command.seedOrder },
+        {
+          seedOrder:
+            command.seedOrder ??
+            tournament.getActivePlayers().map((p) => p.getId()),
+        },
       );
     } else {
       round = SwissPairingService.generateNextRound(tournament);

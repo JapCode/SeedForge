@@ -66,7 +66,7 @@ describe("Round.allMatchesResolved / getPendingMatches", () => {
     const m1 = Match.createPairing("m1", 1, 1, "p1", "p2");
     const m2 = Match.createPairing("m2", 1, 2, "p3", "p4");
     m1.reportWin("p1", 2, 0);
-    m2.reportDoubleLoss(1, 1);
+    m2.reportDoubleLoss(0, 0);
 
     const round = Round.create(1, [m1, m2]);
 

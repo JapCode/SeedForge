@@ -10,11 +10,22 @@ import { Player, PlayerId } from "../entities/Player";
 const MINIMUM_OPPONENT_PERCENTAGE = 1 / 3;
 
 export interface Tiebreakers {
+  /** AA: total match points earned (win = 3, draw = 1, loss/double loss = 0). */
   matchPoints: number;
+  /** The player's own match-win percentage (points / max obtainable). */
   matchWinPercentage: number;
+  /** BBB: opponents' match-win percentage (OMW%), each floored at 33%. */
   opponentsMatchWinPercentage: number;
-  gameWinPercentage: number;
-  opponentsGameWinPercentage: number;
+  /**
+   * CCC: opponents' opponents' match-win percentage (OGW%). Each opponent's
+   * own OMW% is computed with the same 33% floor, then averaged.
+   */
+  opponentsOpponentsMatchWinPercentage: number;
+  /**
+   * DDD: sum of the squares of the round numbers in which the player lost a
+   * match (plain loss or double loss). Lower is better.
+   */
+  sumOfSquaresOfLosses: number;
 }
 
 export class TiebreakerCalculator {
@@ -46,10 +57,14 @@ export class TiebreakerCalculator {
       opponentsMatchWinPercentage: this.averageWithFloor(
         opponents.map((opponent) => this.matchWinPercentageOf(opponent)),
       ),
-      gameWinPercentage: player.getGameWinPercentage(),
-      opponentsGameWinPercentage: this.averageWithFloor(
-        opponents.map((opponent) => opponent.getGameWinPercentage()),
+      opponentsOpponentsMatchWinPercentage: this.averageWithFloor(
+        opponents.map((opponent) =>
+          this.opponentsMatchWinPercentageOf(opponent, playerById),
+        ),
       ),
+      sumOfSquaresOfLosses: player
+        .getLostRoundNumbers()
+        .reduce((sum, round) => sum + round * round, 0),
     };
   }
 
@@ -69,8 +84,9 @@ export class TiebreakerCalculator {
   }
 
   /**
-   * Ranks two players according to the official tiebreaker order:
-   * match points -> OMW% -> GW% -> OGW%.
+   * Ranks two players according to the official KTS tiebreaker order:
+   * match points -> OMW% -> OGW% (opponents' opponents' match-win %) ->
+   * sum of squares of rounds lost.
    * Returns a negative number if `a` should rank above `b`, positive if
    * below, and 0 if they are fully tied on every tiebreaker (a true draw
    * for standings purposes, typically broken further by seed or coin flip).
@@ -80,10 +96,17 @@ export class TiebreakerCalculator {
     if (a.opponentsMatchWinPercentage !== b.opponentsMatchWinPercentage) {
       return b.opponentsMatchWinPercentage - a.opponentsMatchWinPercentage;
     }
-    if (a.gameWinPercentage !== b.gameWinPercentage) {
-      return b.gameWinPercentage - a.gameWinPercentage;
+    if (
+      a.opponentsOpponentsMatchWinPercentage !==
+      b.opponentsOpponentsMatchWinPercentage
+    ) {
+      return (
+        b.opponentsOpponentsMatchWinPercentage -
+        a.opponentsOpponentsMatchWinPercentage
+      );
     }
-    return b.opponentsGameWinPercentage - a.opponentsGameWinPercentage;
+    // DDD: fewer/lower-numbered lost rounds rank higher.
+    return a.sumOfSquaresOfLosses - b.sumOfSquaresOfLosses;
   }
 
   /**
@@ -98,6 +121,29 @@ export class TiebreakerCalculator {
       player.getOpponentIds().length + (player.hasHadBye() ? 1 : 0);
     if (matchesPlayed === 0) return 0;
     return player.getPoints() / (matchesPlayed * 3);
+  }
+
+  /**
+   * OMW% of a single player: the average of their opponents' match-win
+   * percentages, each floored at 33%. Used both for the BBB tiebreaker of
+   * the player themselves and as the input for CCC (opponents' opponents').
+   */
+  private static opponentsMatchWinPercentageOf(
+    player: Player,
+    playerById: Map<PlayerId, Player>,
+  ): number {
+    const opponents = player.getOpponentIds().map((opponentId) => {
+      const opponent = playerById.get(opponentId);
+      if (!opponent) {
+        throw new Error(
+          `Opponent ${opponentId} referenced by player ${player.getId()} was not found`,
+        );
+      }
+      return opponent;
+    });
+    return this.averageWithFloor(
+      opponents.map((opponent) => this.matchWinPercentageOf(opponent)),
+    );
   }
 
   /**

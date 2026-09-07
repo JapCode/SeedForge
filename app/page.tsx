@@ -1,201 +1,43 @@
-import {
-  Column,
-  Flex,
-  Row,
-  Heading,
-  Text,
-  Button,
-  Card,
-  Badge,
-  Icon,
-} from "@once-ui-system/core";
-import { SessionNav } from "./_components/SessionNav";
+import { Column } from "@once-ui-system/core";
+import { getSessionUserId } from "@/infrastructure/auth/getSessionUserId";
+import { Hero } from "./_components/landing/Hero";
+import { HowItWorks } from "./_components/landing/HowItWorks";
+import { ClosingCta } from "./_components/landing/ClosingCta";
+import { LandingFooter } from "./_components/landing/LandingFooter";
 
-const Home = () => {
+/**
+ * DIRECTION CONTRACT — Landing page (Persuade).
+ * THESIS: Seed Forge is the modern web alternative to KTS; the landing proves
+ *   the mechanism (a live standings table) instead of claiming it, and
+ *   refuses the generic text-only hero + icon-card grid.
+ * OWN-WORLD: Forge Floor — violet heat on slate steel, Geist, Once UI
+ *   primitives, translucent surfaces, alpha borders, playful radii; magenta
+ *   only for the live state.
+ * STORY: the organizer understands the flow (create → players → rounds →
+ *   standings) in one scroll and registers.
+ * FIRST VIEWPORT: copy on the left with the primary action; a synthetic live
+ *   standings table on the right under a pulsing "En vivo" dot.
+ * FORM: surface redesign inside the established identity (extended surface).
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the
+ *   finish review, the verdict, and DESIGN.md.
+ */
+const Home = async () => {
+  // Signed-in users go straight to creation; guests land on the sign-up page.
+  const userId = await getSessionUserId();
+  const primaryCtaHref = userId ? "/crear" : "/registro";
+
   return (
     <Column fillWidth>
-      {/* ── Header ── */}
-      <Flex
-        as="header"
-        fillWidth
-        paddingX="32"
-        paddingY="16"
-        horizontal="between"
-        vertical="center"
-      >
-        <Heading as="p" variant="heading-strong-m">
-          Seed Forge
-        </Heading>
-        <SessionNav />
-      </Flex>
+      <Hero primaryCtaHref={primaryCtaHref} />
 
-      <Column fillWidth padding="160" horizontal="center" gap="80">
-        {/* ── Hero section ── */}
-        <Column
-          as="section"
-          fillWidth
-          maxWidth={640}
-          horizontal="center"
-          gap="24"
-          center
-        >
-          <Badge icon="sparkle" arrow href="#">
-            New release v1.7
-          </Badge>
-
-          <Heading
-            as="h1"
-            variant="display-strong-l"
-            align="center"
-            wrap="balance"
-          >
-            Build faster with Once UI
-          </Heading>
-
-          <Text
-            as="p"
-            variant="body-default-l"
-            onBackground="neutral-medium"
-            align="center"
-            wrap="balance"
-          >
-            An open-source design system for the AI-native era. Deploy fully
-            functional apps in minutes or build custom solutions with less code.
-          </Text>
-
-          <Row gap="16" horizontal="center" wrap>
-            <Button variant="primary" size="l" label="Get started" arrowIcon />
-            <Button
-              variant="secondary"
-              size="l"
-              label="View on GitHub"
-              href="#"
-            />
-          </Row>
-        </Column>
-
-        {/* ── Features section ── */}
-        <Flex
-          as="section"
-          fillWidth
-          direction="row"
-          wrap
-          horizontal="center"
-          gap="24"
-          maxWidth={960}
-        >
-          {features.map((feature) => (
-            <Card
-              key={feature.title}
-              fillWidth
-              padding="24"
-              radius="l"
-              border="neutral-alpha-medium"
-              borderStyle="solid"
-              borderWidth={1}
-              style={{ flex: "1 1 280px" }}
-            >
-              <Column gap="12">
-                <Flex
-                  horizontal="center"
-                  vertical="center"
-                  width={40}
-                  height={40}
-                  radius="m"
-                  background="brand-alpha-medium"
-                >
-                  <Icon
-                    name={feature.icon}
-                    size="s"
-                    onBackground="brand-medium"
-                  />
-                </Flex>
-                <Heading as="h3" variant="heading-strong-m">
-                  {feature.title}
-                </Heading>
-                <Text variant="body-default-s" onBackground="neutral-medium">
-                  {feature.description}
-                </Text>
-              </Column>
-            </Card>
-          ))}
-        </Flex>
-
-        {/* ── CTA section ── */}
-        <Column
-          as="section"
-          fillWidth
-          maxWidth={640}
-          horizontal="center"
-          gap="16"
-          center
-          padding="48"
-          radius="l"
-          background="brand-alpha-weak"
-          border="brand-alpha-medium"
-          borderStyle="solid"
-          borderWidth={1}
-        >
-          <Heading as="h2" variant="heading-strong-l" align="center">
-            Ready to get started?
-          </Heading>
-          <Text
-            variant="body-default-m"
-            onBackground="neutral-medium"
-            align="center"
-          >
-            Install Once UI in your project and start building.
-          </Text>
-          <Button
-            variant="primary"
-            size="l"
-            label="Install Now"
-            arrowIcon
-            href="#"
-          />
-        </Column>
+      <Column fillWidth horizontal="center" paddingY="40" gap="80">
+        <HowItWorks />
+        <ClosingCta primaryCtaHref={primaryCtaHref} />
       </Column>
+
+      <LandingFooter />
     </Column>
   );
 };
-
-const features = [
-  {
-    icon: "sparkle" as const,
-    title: "100+ Components",
-    description:
-      "A comprehensive library of accessible, customizable components built for modern React and Next.js applications.",
-  },
-  {
-    icon: "eyeDropper" as const,
-    title: "Semantic Tokens",
-    description:
-      "Design tokens for colors, spacing, typography, and more. Consistent theming across your entire application.",
-  },
-  {
-    icon: "computer" as const,
-    title: "Responsive by Default",
-    description:
-      "Every component is responsive out of the box. Breakpoint props for fine-tuning layouts at any screen size.",
-  },
-  {
-    icon: "light" as const,
-    title: "Light & Dark Mode",
-    description:
-      "Built-in dark mode support with system preference detection. Seamless transitions between themes.",
-  },
-  {
-    icon: "world" as const,
-    title: "Open Source",
-    description:
-      "MIT-licensed core components. Free to use in personal and commercial projects alike.",
-  },
-  {
-    icon: "gift" as const,
-    title: "Pro Templates",
-    description:
-      "Pre-built deployment-ready templates and copy-paste blocks for rapid application development.",
-  },
-];
 
 export default Home;

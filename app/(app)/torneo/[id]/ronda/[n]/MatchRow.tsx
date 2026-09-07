@@ -1,6 +1,6 @@
 "use client";
 
-import { Column, Row, Text, Badge } from "@once-ui-system/core";
+import { Column, Row, Text, Badge, Button } from "@once-ui-system/core";
 import { ActionButton } from "../../ActionButton";
 import { registerMatchResultAction, revertMatchResultAction } from "./actions";
 
@@ -40,12 +40,29 @@ export const MatchRow = ({
 }: MatchRowProps) => {
   if (isBye) {
     return (
-      <Row fillWidth padding="12" radius="m" border vertical="center" gap="12">
+      <Row
+        fillWidth
+        padding="12"
+        radius="m"
+        border="brand-alpha-medium"
+        borderStyle="dashed"
+        borderWidth={1}
+        horizontal="between"
+        vertical="center"
+        gap="12"
+      >
         <Text variant="label-default-s" onBackground="neutral-weak">
           Mesa {tableNumber}
         </Text>
-        <Text variant="body-default-m">{player1Name}</Text>
-        <Badge>BYE</Badge>
+        <Column gap="2">
+          <Text variant="body-default-m">{player1Name}</Text>
+          <Text variant="body-default-xs" onBackground="neutral-weak">
+            3 pts · 2-0
+          </Text>
+        </Column>
+        <Badge background="brand-weak" onBackground="brand-strong">
+          BYE
+        </Badge>
       </Row>
     );
   }
@@ -67,90 +84,82 @@ export const MatchRow = ({
     return "";
   }
 
+  const reportWin = (
+    winnerId: string,
+    winnerGames: number,
+    loserGames: number,
+  ) =>
+    registerMatchResultAction.bind(null, tournamentId, roundNumber, matchId, {
+      type: "win",
+      winnerId,
+      winnerGames,
+      loserGames,
+    });
+
   return (
-    <Column fillWidth padding="12" radius="m" border gap="12">
+    <Column fillWidth padding="16" radius="l" border gap="16">
+      {/* ── Header: table + result ── */}
       <Row fillWidth horizontal="between" vertical="center">
-        <Row gap="12" vertical="center">
-          <Text variant="label-default-s" onBackground="neutral-weak">
-            Mesa {tableNumber}
-          </Text>
-          <Text variant="body-default-m">
-            {player1Name} vs {player2Name}
-          </Text>
-        </Row>
+        <Text variant="label-default-s" onBackground="neutral-weak">
+          Mesa {tableNumber}
+        </Text>
         {!isPending && <Badge>{resultSummary()}</Badge>}
       </Row>
 
+      {/* ── Players vs Players ── */}
+      <Row fillWidth gap="12" vertical="center">
+        <Column fillWidth gap="8" padding="12" radius="m" background="surface">
+          <Text variant="body-strong-m">{player1Name}</Text>
+          {isPending && (
+            <Row gap="8" wrap>
+              <Button
+                size="s"
+                variant="secondary"
+                onClick={() => reportWin(player1Id, 2, 0)()}
+              >
+                Ganó 2-0
+              </Button>
+              <Button
+                size="s"
+                variant="secondary"
+                onClick={() => reportWin(player1Id, 2, 1)()}
+              >
+                Ganó 2-1
+              </Button>
+            </Row>
+          )}
+        </Column>
+
+        <Text variant="label-default-m" onBackground="neutral-weak">
+          vs
+        </Text>
+
+        <Column fillWidth gap="8" padding="12" radius="m" background="surface">
+          <Text variant="body-strong-m">{player2Name}</Text>
+          {isPending && (
+            <Row gap="8" wrap>
+              <Button
+                size="s"
+                variant="secondary"
+                onClick={() => reportWin(player2Id!, 2, 0)()}
+              >
+                Ganó 2-0
+              </Button>
+              <Button
+                size="s"
+                variant="secondary"
+                onClick={() => reportWin(player2Id!, 2, 1)()}
+              >
+                Ganó 2-1
+              </Button>
+            </Row>
+          )}
+        </Column>
+      </Row>
+
+      {/* ── Footer actions ── */}
       {isPending ? (
         <Row gap="8" wrap>
-          <ActionButton
-            label={`${player1Name} 2-0`}
-            pendingLabel="Guardando..."
-            variant="secondary"
-            action={registerMatchResultAction.bind(
-              null,
-              tournamentId,
-              roundNumber,
-              matchId,
-              {
-                type: "win",
-                winnerId: player1Id,
-                winnerGames: 2,
-                loserGames: 0,
-              },
-            )}
-          />
-          <ActionButton
-            label={`${player1Name} 2-1`}
-            pendingLabel="Guardando..."
-            variant="secondary"
-            action={registerMatchResultAction.bind(
-              null,
-              tournamentId,
-              roundNumber,
-              matchId,
-              {
-                type: "win",
-                winnerId: player1Id,
-                winnerGames: 2,
-                loserGames: 1,
-              },
-            )}
-          />
-          <ActionButton
-            label={`${player2Name} 2-1`}
-            pendingLabel="Guardando..."
-            variant="secondary"
-            action={registerMatchResultAction.bind(
-              null,
-              tournamentId,
-              roundNumber,
-              matchId,
-              {
-                type: "win",
-                winnerId: player2Id!,
-                winnerGames: 2,
-                loserGames: 1,
-              },
-            )}
-          />
-          <ActionButton
-            label={`${player2Name} 2-0`}
-            pendingLabel="Guardando..."
-            variant="secondary"
-            action={registerMatchResultAction.bind(
-              null,
-              tournamentId,
-              roundNumber,
-              matchId,
-              {
-                type: "win",
-                winnerId: player2Id!,
-                winnerGames: 2,
-                loserGames: 0,
-              },
-            )}
-          />
           <ActionButton
             label="Doble derrota"
             pendingLabel="Guardando..."
@@ -162,8 +171,8 @@ export const MatchRow = ({
               matchId,
               {
                 type: "double_loss",
-                player1Games: 1,
-                player2Games: 1,
+                player1Games: 0,
+                player2Games: 0,
               },
             )}
           />
@@ -187,17 +196,19 @@ export const MatchRow = ({
           )}
         </Row>
       ) : (
-        <ActionButton
-          label="Revertir resultado"
-          pendingLabel="Revirtiendo..."
-          variant="tertiary"
-          action={revertMatchResultAction.bind(
-            null,
-            tournamentId,
-            roundNumber,
-            matchId,
-          )}
-        />
+        <Row>
+          <ActionButton
+            label="Revertir resultado"
+            pendingLabel="Revirtiendo..."
+            variant="tertiary"
+            action={revertMatchResultAction.bind(
+              null,
+              tournamentId,
+              roundNumber,
+              matchId,
+            )}
+          />
+        </Row>
       )}
     </Column>
   );

@@ -1,0 +1,13 @@
+/*
+ * Auth inputs get an opaque background so the stacked decorative page
+ * background behind the translucent auth card doesn't darken them. The
+ * color comes from the `--sf-input-background` custom property set by
+ * AuthFieldGroup's `background` prop (fallback: opaque neutral).
+ * Once UI gives Input a `neutral-alpha-weak` background by default; this
+ * override is scoped to AuthFieldGroup and lives with the component.
+ */
+.input {
+  :global(.neutral-background-alpha-weak) {
+    background-color: var(--sf-input-background, var(--neutral-background-weak));
+  }
+}

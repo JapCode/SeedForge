@@ -24,7 +24,8 @@ export async function shareTournamentAction(
     return { error: null, token };
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : "No se pudo generar el link.",
+      error:
+        err instanceof Error ? err.message : "No se pudo generar el enlace.",
       token: null,
     };
   }

@@ -3,6 +3,7 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import pluginPrettier from "eslint-plugin-prettier";
 import eslintConfigPrettier from "eslint-config-prettier";
+import boundaries from "eslint-plugin-boundaries";
 
 const eslintConfig = defineConfig([
   // ── Next.js presets (include react, react-hooks, jsx-a11y, import, @next/next plugins) ──
@@ -57,11 +58,82 @@ const eslintConfig = defineConfig([
     },
     settings: {
       "import/resolver": {
-        node: {
-          paths: ["src"],
-          extensions: [".js", ".jsx", ".ts", ".tsx"],
+        typescript: {
+          alwaysTryTypes: true,
         },
       },
+    },
+  },
+
+  // ── Architecture boundaries (hexagonal, one-way dependency) ──
+  // Enforces: app/ → infrastructure/ → application/ → domain/
+  // See AGENTS.md for the full architecture description.
+  {
+    name: "seed-forge/boundaries",
+    plugins: {
+      boundaries,
+    },
+    settings: {
+      "boundaries/elements": [
+        { type: "domain", pattern: "domain/**" },
+        { type: "application", pattern: "application/**" },
+        { type: "infrastructure", pattern: "infrastructure/**" },
+        { type: "app", pattern: "app/**" },
+        { type: "components", pattern: "components/**" },
+        { type: "resources", pattern: "resources/**" },
+        { type: "test", pattern: "test/**" },
+      ],
+    },
+    rules: {
+      "boundaries/dependencies": [
+        "error",
+        {
+          default: "disallow",
+          policies: [
+            // domain: pure TypeScript — may only depend on itself.
+            {
+              from: { element: { type: "domain" } },
+              allow: { to: { element: { type: "domain" } } },
+            },
+            // application: use-cases + ports — depends only on domain.
+            {
+              from: { element: { type: "application" } },
+              allow: { to: { element: { type: ["domain", "application"] } } },
+            },
+            // infrastructure: implements the ports — application + domain.
+            {
+              from: { element: { type: "infrastructure" } },
+              allow: {
+                to: {
+                  element: {
+                    type: ["application", "domain", "infrastructure"],
+                  },
+                },
+              },
+            },
+            // components: shared UI — domain + itself.
+            {
+              from: { element: { type: "components" } },
+              allow: { to: { element: { type: ["domain", "components"] } } },
+            },
+            // resources: design tokens/icons — only itself (external-only in practice).
+            {
+              from: { element: { type: "resources" } },
+              allow: { to: { element: { type: "resources" } } },
+            },
+            // app: top layer — may reach everything below.
+            {
+              from: { element: { type: "app" } },
+              allow: { to: { element: { type: "*" } } },
+            },
+            // test: integration tests — may reach everything.
+            {
+              from: { element: { type: "test" } },
+              allow: { to: { element: { type: "*" } } },
+            },
+          ],
+        },
+      ],
     },
   },
 
@@ -72,7 +144,24 @@ const eslintConfig = defineConfig([
     : [eslintConfigPrettier]),
 
   // ── Global ignores ──
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    // AI agent directories
+    ".opencode/**",
+    ".agent/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".impeccable/**",
+    ".kiro/**",
+    ".pi/**",
+    ".qoder/**",
+  ]),
 ]);
 
 export default eslintConfig;

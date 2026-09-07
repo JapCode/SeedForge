@@ -1,9 +1,10 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Tournament, TournamentId } from "../../../domain/entities/Tournament";
 import {
   TournamentRepository,
   TournamentConcurrencyError,
+  Pagination,
 } from "../../../application/ports/TournamentRepository";
 import { tournaments } from "../drizzle/schema";
 import {
@@ -47,13 +48,27 @@ export class DrizzleTournamentRepository implements TournamentRepository {
     return this.toDomainAndTrackVersion(rows[0]);
   }
 
-  async findByOwnerId(ownerId: string): Promise<Tournament[]> {
-    const rows = await this.db
+  async findByOwnerId(
+    ownerId: string,
+    pagination?: Pagination,
+  ): Promise<Tournament[]> {
+    const base = this.db
       .select()
       .from(tournaments)
       .where(eq(tournaments.ownerId, ownerId))
       .orderBy(desc(tournaments.updatedAt));
+    const rows = pagination
+      ? await base.limit(pagination.limit).offset(pagination.offset)
+      : await base;
     return rows.map((row) => this.toDomainAndTrackVersion(row));
+  }
+
+  async countByOwnerId(ownerId: string): Promise<number> {
+    const rows = await this.db
+      .select({ count: count() })
+      .from(tournaments)
+      .where(eq(tournaments.ownerId, ownerId));
+    return rows[0]?.count ?? 0;
   }
 
   async save(tournament: Tournament): Promise<void> {

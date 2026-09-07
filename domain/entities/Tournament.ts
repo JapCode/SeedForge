@@ -1,4 +1,5 @@
 import { Player, PlayerId } from "./Player";
+import { Match, MatchResult } from "./Match";
 import { Round, RoundNumber } from "./Round";
 import { TournamentRuleset } from "../value-objects/TournamentRuleset";
 
@@ -9,6 +10,14 @@ export type TournamentPhase =
 
 export type TopCutSize = 4 | 8 | 16 | 32 | null;
 
+/**
+ * How rounds are paired. "automatic" uses the Swiss backtracking search;
+ * "manual" is the audit mode: round 1 is built from organizer-provided
+ * pairings (via SwissPairingService.buildManualRound), later rounds pair
+ * automatically from the actual results.
+ */
+export type PairingMode = "automatic" | "manual";
+
 export interface TournamentProps {
   id: TournamentId;
   ownerId: string;
@@ -16,6 +25,7 @@ export interface TournamentProps {
   phase: TournamentPhase;
   totalSwissRounds: number;
   topCutSize: TopCutSize;
+  pairingMode: PairingMode;
   ruleset: TournamentRuleset;
   players: Player[];
   rounds: Round[];
@@ -29,6 +39,7 @@ export class Tournament {
   private phase: TournamentPhase;
   private readonly totalSwissRounds: number;
   private readonly topCutSize: TopCutSize;
+  private readonly pairingMode: PairingMode;
   private readonly ruleset: TournamentRuleset;
   private players: Player[];
   private rounds: Round[];
@@ -41,6 +52,7 @@ export class Tournament {
     this.phase = props.phase;
     this.totalSwissRounds = props.totalSwissRounds;
     this.topCutSize = props.topCutSize;
+    this.pairingMode = props.pairingMode;
     this.ruleset = props.ruleset;
     this.players = props.players;
     this.rounds = props.rounds;
@@ -53,6 +65,7 @@ export class Tournament {
     name: string;
     totalSwissRounds: number;
     topCutSize?: TopCutSize;
+    pairingMode?: PairingMode;
     ruleset?: TournamentRuleset;
   }): Tournament {
     if (!params.name.trim()) {
@@ -74,6 +87,7 @@ export class Tournament {
       phase: "registration",
       totalSwissRounds: params.totalSwissRounds,
       topCutSize,
+      pairingMode: params.pairingMode ?? "automatic",
       ruleset: params.ruleset ?? TournamentRuleset.current(),
       players: [],
       rounds: [],
@@ -107,6 +121,10 @@ export class Tournament {
 
   getTopCutSize(): TopCutSize {
     return this.topCutSize;
+  }
+
+  getPairingMode(): PairingMode {
+    return this.pairingMode;
   }
 
   getRuleset(): TournamentRuleset {
@@ -189,6 +207,67 @@ export class Tournament {
     this.players = this.players.filter((p) => p.getId() !== playerId);
   }
 
+  /**
+   * Randomizes the order of the registered players (Fisher-Yates). This is
+   * the "initial ranking" KTS derives from its round-1 random draw: once
+   * persisted, the stable sorts used for standings and pairing break full
+   * tiebreaker ties by this order. Only valid before any round exists.
+   */
+  randomizePlayerOrder(): void {
+    this.assertNoRoundsYet("randomized");
+    for (let i = this.players.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.players[i], this.players[j]] = [this.players[j], this.players[i]];
+    }
+  }
+
+  /**
+   * Reorders the registered players to an explicit seed (best to worst).
+   * Used when the organizer provides a seedOrder for round 1: that order then
+   * breaks full tiebreaker ties throughout the tournament, mirroring how KTS
+   * treats its initial ranking. Only valid before any round exists.
+   */
+  reorderPlayers(playerIds: PlayerId[]): void {
+    this.assertNoRoundsYet("set");
+    if (playerIds.length !== this.players.length) {
+      throw new Error(
+        "Seed order must contain exactly the same players as the tournament, with no duplicates",
+      );
+    }
+
+    const seen = new Set<PlayerId>();
+    for (const id of playerIds) {
+      if (seen.has(id)) {
+        throw new Error(`Seed order contains duplicate player ${id}`);
+      }
+      seen.add(id);
+    }
+
+    const byId = new Map(this.players.map((p) => [p.getId(), p]));
+    const missing = this.players.filter((p) => !playerIds.includes(p.getId()));
+    if (missing.length > 0) {
+      throw new Error(
+        `Seed order is missing these players: ${missing.map((p) => p.getId()).join(", ")}`,
+      );
+    }
+
+    this.players = playerIds.map((id) => {
+      const player = byId.get(id);
+      if (!player) {
+        throw new Error(`Seed order references unknown player ${id}`);
+      }
+      return player;
+    });
+  }
+
+  private assertNoRoundsYet(action: string): void {
+    if (this.rounds.length > 0) {
+      throw new Error(
+        `The player order can only be ${action} before the first round is generated`,
+      );
+    }
+  }
+
   dropPlayer(playerId: PlayerId): void {
     this.getPlayer(playerId).drop();
   }
@@ -229,6 +308,17 @@ export class Tournament {
       );
     }
 
+    // A bye is an automatic result: the recipient earns it (3 points + a 2-0
+    // game record) the moment the round exists, so standings are correct even
+    // before the round is completed. recordBye enforces the one-bye-per-player
+    // rule; the pairing services already avoid selecting a player who has had
+    // a bye, and revertRoundsForEdit undoes byes of removed rounds.
+    for (const match of round.getMatches()) {
+      if (match.isBye()) {
+        this.getPlayer(match.getPlayer1Id()).recordBye();
+      }
+    }
+
     this.rounds.push(round);
   }
 
@@ -237,11 +327,156 @@ export class Tournament {
   }
 
   revertRoundCompletion(roundNumber: RoundNumber): void {
+    if (this.phase === "completed") {
+      throw new Error(
+        "Cannot revert a round while the tournament is completed",
+      );
+    }
     const round = this.getRound(roundNumber);
     if (round.getRoundNumber() !== this.rounds.length) {
       throw new Error("Only the most recently played round can be reverted");
     }
     round.revertCompletion();
+  }
+
+  /**
+   * Reverts the tournament to the state it was in right after round
+   * `roundNumber` was completed, so the organizer can correct a result and
+   * then generate a new round `roundNumber + 1` with recalculated pairings.
+   *
+   * Every later round is removed and the results (points, opponents, games,
+   * byes) they granted are undone; the target round's completion is then
+   * reverted so its matches become editable again. This is the "cascade"
+   * counterpart of revertRoundCompletion, which only works on the most
+   * recently played round.
+   *
+   * Guarded to the swiss phase: top cut brackets are built from the final
+   * standings and are not part of `rounds`, so this method cannot unwind them.
+   */
+  revertRoundsForEdit(roundNumber: RoundNumber): void {
+    if (this.phase !== "swiss") {
+      throw new Error(
+        "Rounds can only be reverted for editing during the swiss phase",
+      );
+    }
+
+    const targetRound = this.getRound(roundNumber);
+    if (!targetRound.isCompleted()) {
+      throw new Error(
+        `Round ${roundNumber} must be completed before it can be reverted for editing`,
+      );
+    }
+    if (roundNumber >= this.rounds.length) {
+      throw new Error(
+        `Round ${roundNumber} is the last round; use revertRoundCompletion instead`,
+      );
+    }
+
+    // Undo every result granted by the rounds being removed, so player stats
+    // (points, opponents, games, bye eligibility) match the state right after
+    // round `roundNumber` was completed.
+    for (const round of this.rounds) {
+      if (round.getRoundNumber() <= roundNumber) continue;
+      for (const match of round.getMatches()) {
+        const result = match.getResult();
+        if (match.isBye()) {
+          const byePlayer = this.getPlayer(match.getPlayer1Id());
+          if (byePlayer.hasHadBye()) {
+            byePlayer.revertBye();
+          }
+          continue;
+        }
+        if (result.type === "pending") continue;
+
+        match.revertResult();
+        this.revertMatchStats(match, result);
+      }
+    }
+
+    // Remove the later rounds.
+    this.rounds = this.rounds.filter((r) => r.getRoundNumber() <= roundNumber);
+
+    // Reopen the target round. Now that it is the last round, the existing
+    // most-recently-played guard passes.
+    this.revertRoundCompletion(roundNumber);
+  }
+
+  /**
+   * Undoes the stats a single reported result granted: match points, the
+   * opponent record, and the game record. Mirrors the revert logic of the
+   * RevertMatchResult use-case (win = 3, draw = 1, double loss = 0).
+   */
+  private revertMatchStats(match: Match, result: MatchResult): void {
+    const player1 = this.getPlayer(match.getPlayer1Id());
+    const player2 = this.getPlayer(match.getPlayer2Id()!);
+    const roundNumber = match.getRoundNumber();
+
+    switch (result.type) {
+      case "win": {
+        const winner = result.winnerId === player1.getId() ? player1 : player2;
+        const loser = result.winnerId === player1.getId() ? player2 : player1;
+        const totalGames = result.winnerGames + result.loserGames;
+
+        winner.revertMatchResult(
+          loser.getId(),
+          roundNumber,
+          3,
+          result.winnerGames,
+          totalGames,
+        );
+        loser.revertMatchResult(
+          winner.getId(),
+          roundNumber,
+          0,
+          result.loserGames,
+          totalGames,
+        );
+        break;
+      }
+
+      case "draw": {
+        const totalGames = result.player1Games + result.player2Games;
+        player1.revertMatchResult(
+          player2.getId(),
+          roundNumber,
+          1,
+          result.player1Games,
+          totalGames,
+        );
+        player2.revertMatchResult(
+          player1.getId(),
+          roundNumber,
+          1,
+          result.player2Games,
+          totalGames,
+        );
+        break;
+      }
+
+      case "double_loss": {
+        const totalGames = result.player1Games + result.player2Games;
+        player1.revertMatchResult(
+          player2.getId(),
+          roundNumber,
+          0,
+          result.player1Games,
+          totalGames,
+        );
+        player2.revertMatchResult(
+          player1.getId(),
+          roundNumber,
+          0,
+          result.player2Games,
+          totalGames,
+        );
+        break;
+      }
+
+      case "pending":
+      case "bye":
+        // Handled by the caller before this is invoked.
+        break;
+    }
   }
 
   isSwissStageComplete(): boolean {
@@ -311,6 +546,7 @@ export class Tournament {
       phase: this.phase,
       totalSwissRounds: this.totalSwissRounds,
       topCutSize: this.topCutSize,
+      pairingMode: this.pairingMode,
       ruleset: this.ruleset,
       players: [...this.players],
       rounds: [...this.rounds],

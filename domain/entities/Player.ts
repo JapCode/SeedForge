@@ -10,6 +10,12 @@ export interface PlayerProps {
   gamesWon: number;
   gamesPlayed: number;
   topCutSeed: number | null;
+  /**
+   * Round numbers in which this player lost a match (a plain loss or a
+   * double loss; draws and byes never count). Feeds the official "sum of the
+   * squares of the Rounds the Duelist lost Matches" tiebreaker (DDD).
+   */
+  lostRoundNumbers: number[];
 }
 
 export class Player {
@@ -22,6 +28,7 @@ export class Player {
   private gamesWon: number;
   private gamesPlayed: number;
   private topCutSeed: number | null;
+  private lostRoundNumbers: number[];
 
   private constructor(props: PlayerProps) {
     this.id = props.id;
@@ -33,6 +40,7 @@ export class Player {
     this.gamesWon = props.gamesWon;
     this.gamesPlayed = props.gamesPlayed;
     this.topCutSeed = props.topCutSeed;
+    this.lostRoundNumbers = props.lostRoundNumbers;
   }
 
   static create(id: PlayerId, name: string): Player {
@@ -50,11 +58,17 @@ export class Player {
       gamesWon: 0,
       gamesPlayed: 0,
       topCutSeed: null,
+      lostRoundNumbers: [],
     });
   }
 
   static fromProps(props: PlayerProps): Player {
-    return new Player(props);
+    // Tournaments persisted before lostRoundNumbers existed won't have the
+    // field; default it to an empty list so old data keeps loading.
+    return new Player({
+      ...props,
+      lostRoundNumbers: props.lostRoundNumbers ?? [],
+    });
   }
 
   getId(): PlayerId {
@@ -102,6 +116,10 @@ export class Player {
     return this.gamesWon / this.gamesPlayed;
   }
 
+  getLostRoundNumbers(): readonly number[] {
+    return this.lostRoundNumbers;
+  }
+
   recordMatchWin(
     opponentId: PlayerId,
     gamesWon: number,
@@ -124,11 +142,13 @@ export class Player {
 
   recordMatchLoss(
     opponentId: PlayerId,
+    roundNumber: number,
     gamesWon: number,
     gamesPlayed: number,
   ): void {
     this.registerOpponent(opponentId);
     this.registerGames(gamesWon, gamesPlayed);
+    this.lostRoundNumbers.push(roundNumber);
   }
 
   /**
@@ -148,6 +168,7 @@ export class Player {
 
   revertMatchResult(
     opponentId: PlayerId,
+    roundNumber: number,
     pointsAwarded: number,
     gamesWon: number,
     gamesPlayed: number,
@@ -156,6 +177,9 @@ export class Player {
     this.opponentIds = this.opponentIds.filter((id) => id !== opponentId);
     this.gamesWon -= gamesWon;
     this.gamesPlayed -= gamesPlayed;
+    this.lostRoundNumbers = this.lostRoundNumbers.filter(
+      (round) => round !== roundNumber,
+    );
   }
 
   revertBye(): void {
@@ -196,6 +220,7 @@ export class Player {
       gamesWon: this.gamesWon,
       gamesPlayed: this.gamesPlayed,
       topCutSeed: this.topCutSeed,
+      lostRoundNumbers: [...this.lostRoundNumbers],
     };
   }
 }

@@ -1,26 +1,257 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Seed Forge global styles.
+ *
+ * Once UI (styles.css + tokens.css imported in app/layout.tsx) is the source
+ * of truth for theming. Keep this file free of CSS custom properties that
+ * would fight the Once UI tokens — anything here should only fix global
+ * base behavior that Once UI doesn't cover.
+ */
+
+/* Hide the native document scrollbar; the OverlayScrollbar component renders
+   a thin floating bar in its place, so the page background flows edge to
+   edge and expanding content never shifts the layout. */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html::-webkit-scrollbar {
+  display: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Light mode token corrections. Once UI's defaults fail on the white page:
+   - neutral-weak (slate-500, #757683) lands at 4.49:1 on white and 3.99:1
+     on the solid surface fill below — #686974 clears WCAG AA on both
+     (5.44:1 white, 5.08:1 surface).
+   - the translucent surface (white at 30%) is invisible on white; a solid
+     light-lavender fill makes cards read as panels instead of ghost
+     outlines. Dark mode keeps the translucent surface untouched.
+   These are the only token overrides in the app; everything else stays on
+   the Once UI source of truth. */
+[data-theme="light"] {
+  --neutral-on-background-weak: #686974;
+}
+
+/* The surface token is scoped to the surface style in Once UI's tokens
+   (specificity 0,2,0), so the override must match it. */
+[data-surface="translucent"][data-theme="light"] {
+  --surface-background: var(--neutral-background-medium);
+}
+
+/* Overlay scrollbar thumb (OverlayScrollbar component). Uses Once UI alpha
+   tokens so it adapts to light/dark automatically. */
+.sf-scrollbar-thumb {
+  background: var(--neutral-alpha-medium);
+}
+
+.sf-scrollbar-thumb:hover {
+  background: var(--neutral-alpha-strong);
+}
+
+/* Smooth theme switch. Once UI swaps the `data-theme` attribute on <html>
+   instantly; ThemeToggle adds `theme-switching` around the swap so colors
+   fade instead of jump. The universal transition is scoped to that window so
+   everyday hover micro-interactions keep their own (snappier) transitions.
+   Durations come from Once UI's transition tokens (data-transition="all"). */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition:
+    background-color var(--transition-duration-macro-medium, 0.3s)
+      var(--transition-eased, ease-in-out),
+    color var(--transition-duration-macro-medium, 0.3s)
+      var(--transition-eased, ease-in-out),
+    border-color var(--transition-duration-macro-medium, 0.3s)
+      var(--transition-eased, ease-in-out),
+    box-shadow var(--transition-duration-macro-medium, 0.3s)
+      var(--transition-eased, ease-in-out),
+    fill var(--transition-duration-macro-medium, 0.3s)
+      var(--transition-eased, ease-in-out),
+    stroke var(--transition-duration-macro-medium, 0.3s)
+      var(--transition-eased, ease-in-out) !important;
+}
+
+/* Pulse for the "current round" dot in the Swiss round timeline. */
+@keyframes sf-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.sf-pulse {
+  animation: sf-pulse 1.8s ease-in-out infinite;
+}
+
+/* Bracket canvas (Top Cut): dotted "canvas" background so panning is
+   perceivable and the bracket reads as a zoomable surface. */
+.sf-bracket-canvas {
+  background-image: radial-gradient(
+    var(--neutral-alpha-weak) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+/* Landing: soft forge-violet glow behind the hero demo and the closing CTA.
+   Uses the brand alpha ramp so it adapts to light/dark automatically. */
+.sf-landing-glow {
+  background: radial-gradient(
+    60% 60% at 50% 45%,
+    var(--brand-alpha-medium) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Landing hero: forge-floor depth. A violet heat wash from the top over a
+   faint dotted steel texture (the same motif as the top-cut bracket canvas),
+   so the first viewport reads as a lit surface instead of a flat page. The
+   wash lives entirely on a ::before that extends up behind the sticky nav and
+   is centered at the top of the page, so the glow is ONE continuous gradient
+   from the very top of the page through the hero — no seam below the nav. */
+.sf-hero {
+  position: relative;
+  z-index: 0;
+}
+
+.sf-hero::before {
+  content: "";
+  position: absolute;
+  /* Covers the sticky nav (82px desktop, 77px mobile); the overflow above
+     the page top is clipped by the viewport. */
+  top: -88px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* The wash peaks at the top of the page: the ::before starts 6px above it
+     (82px nav vs -88px offset), so the center sits at 50% 6px and the glow
+     fades monotonically from the page top through the hero. */
+  background:
+    radial-gradient(
+      80% 60% at 50% 6px,
+      var(--brand-alpha-weak) 0%,
+      transparent 70%
+    ),
+    radial-gradient(var(--neutral-alpha-weak) 1px, transparent 1px);
+  background-size: auto, 24px 24px;
+}
+
+[data-theme="dark"] .sf-hero::before {
+  background:
+    radial-gradient(
+      120% 100% at 50% 0%,
+      transparent 45%,
+      rgba(0, 0, 0, 0.3) 100%
+    ),
+    radial-gradient(
+      80% 60% at 50% 6px,
+      var(--brand-alpha-medium) 0%,
+      transparent 70%
+    ),
+    radial-gradient(var(--neutral-alpha-weak) 1px, transparent 1px);
+  background-size: auto, auto, 24px 24px;
+}
+
+/* Scroll-reveal: sections rise into place as they enter the viewport
+   (scroll-driven animation). Browsers without animation-timeline support
+   fall back to a one-time fade on load. */
+@keyframes sf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sf-rise {
+  animation: sf-rise 0.6s ease-out both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 60%;
+}
+
+/* Bento cells: lift and violet border on hover. The Card's own
+   transition-macro-medium handles the easing. */
+.sf-bento-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--brand-alpha-strong);
+  box-shadow: var(--shadow-m);
+}
+
+/* Bento grid: a true asymmetric composition instead of equal cards. The
+   first step is a tall cell spanning two rows on the left, the two middle
+   steps stack on the right, and the last step spans the full width at the
+   bottom — the flow still reads 1 → 2 → 3 → 4. Below the s breakpoint the
+   grid collapses to a single column and the spans reset. */
+.sf-bento {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+}
+
+.sf-bento .sf-bento-tall {
+  grid-row: span 2;
+}
+
+.sf-bento .sf-bento-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 48rem) {
+  .sf-bento {
+    grid-template-columns: 1fr;
+  }
+
+  .sf-bento .sf-bento-tall {
+    grid-row: auto;
+  }
+
+  .sf-bento .sf-bento-wide {
+    grid-column: auto;
+  }
+}
+
+/* Landing: anchor target clears the sticky nav pill. */
+#como-funciona {
+  scroll-margin-top: 6rem;
+}
+
+/* Demo standings table (hero). The Once UI Table forces a 32rem min-width
+   and renders headers at 300 — on small screens the OMW%/OGW% columns are
+   hidden and the percentages fold into a compact line under the player
+   name, so the table fits the hero card without horizontal scrolling. */
+.sf-demo-table th {
+  font-weight: 500;
+}
+
+.sf-demo-mobile-pct {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .sf-demo-table table {
+    min-width: 0 !important;
+  }
+
+  .sf-demo-table th:nth-child(4),
+  .sf-demo-table th:nth-child(5),
+  .sf-demo-table td:nth-child(4),
+  .sf-demo-table td:nth-child(5) {
+    display: none;
+  }
+
+  .sf-demo-mobile-pct {
+    display: block;
+  }
 }

@@ -3,7 +3,7 @@ import { CreateTournamentForm } from "./CreateTournamentForm";
 
 const CreateTournamentPage = () => {
   return (
-    <Column fillWidth horizontal="center" paddingY="80">
+    <Column fillWidth horizontal="center" paddingY="40">
       <CreateTournamentForm />
     </Column>
   );

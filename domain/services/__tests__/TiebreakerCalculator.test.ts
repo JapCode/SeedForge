@@ -13,7 +13,7 @@ describe("TiebreakerCalculator.calculateFor — matchWinPercentage", () => {
     for (let i = 0; i < 5; i++)
       player.recordMatchWin(opponents[i].getId(), 2, 3);
     for (let i = 5; i < 8; i++)
-      player.recordMatchLoss(opponents[i].getId(), 1, 3);
+      player.recordMatchLoss(opponents[i].getId(), i + 1, 1, 3);
 
     const tiebreakers = TiebreakerCalculator.calculateFor(player, [
       player,
@@ -51,20 +51,24 @@ describe("TiebreakerCalculator.calculateFor — opponentsMatchWinPercentage", ()
     const player = Player.create("p1", "Ash");
     const opp1 = Player.create("o1", "Opponent 1");
     const opp2 = Player.create("o2", "Opponent 2");
+    const o3 = Player.create("o3", "Opponent of opp1");
+    const o4 = Player.create("o4", "Opponent of opp2");
 
     player.recordMatchWin(opp1.getId(), 2, 3);
     player.recordMatchWin(opp2.getId(), 2, 3);
-    opp1.recordMatchLoss(player.getId(), 1, 3);
-    opp2.recordMatchLoss(player.getId(), 1, 3);
+    opp1.recordMatchLoss(player.getId(), 1, 1, 3);
+    opp2.recordMatchLoss(player.getId(), 1, 1, 3);
 
     // opp1 went on to win their other match; opp2 lost theirs too
-    opp1.recordMatchWin("o3", 2, 3);
-    opp2.recordMatchLoss("o4", 0, 2);
+    opp1.recordMatchWin(o3.getId(), 2, 3);
+    opp2.recordMatchLoss(o4.getId(), 2, 0, 2);
 
     const tiebreakers = TiebreakerCalculator.calculateFor(player, [
       player,
       opp1,
       opp2,
+      o3,
+      o4,
     ]);
 
     // opp1 MWP = 3/6 = 0.5 (1 win, 1 loss); opp2 MWP = 0/6 -> floored to 1/3
@@ -76,13 +80,15 @@ describe("TiebreakerCalculator.calculateFor — opponentsMatchWinPercentage", ()
   it("applies the 33% floor to an opponent who lost every match", () => {
     const player = Player.create("p1", "Ash");
     const weakOpponent = Player.create("o1", "Weak Opponent");
+    const o2 = Player.create("o2", "Opponent of weak opponent");
 
-    player.recordMatchLoss(weakOpponent.getId(), 1, 2); // player lost, but that's irrelevant to OMW
-    weakOpponent.recordMatchLoss("o2", 0, 2);
+    player.recordMatchLoss(weakOpponent.getId(), 1, 1, 2); // player lost, but that's irrelevant to OMW
+    weakOpponent.recordMatchLoss(o2.getId(), 1, 0, 2);
 
     const tiebreakers = TiebreakerCalculator.calculateFor(player, [
       player,
       weakOpponent,
+      o2,
     ]);
 
     expect(tiebreakers.opponentsMatchWinPercentage).toBeCloseTo(1 / 3);
@@ -92,7 +98,7 @@ describe("TiebreakerCalculator.calculateFor — opponentsMatchWinPercentage", ()
     const player = Player.create("p1", "Ash");
     const opponent = Player.create("o1", "Opponent");
     player.recordMatchWin(opponent.getId(), 2, 0);
-    opponent.recordMatchLoss(player.getId(), 0, 2);
+    opponent.recordMatchLoss(player.getId(), 1, 0, 2);
 
     // opponent also received a bye earlier, on top of the loss to player
     opponent.recordBye();
@@ -116,41 +122,80 @@ describe("TiebreakerCalculator.calculateFor — opponentsMatchWinPercentage", ()
   });
 });
 
-describe("TiebreakerCalculator.calculateFor — gameWinPercentage / opponentsGameWinPercentage", () => {
-  it("computes the player's own GW% directly from games won/played", () => {
+describe("TiebreakerCalculator.calculateFor — opponentsOpponentsMatchWinPercentage", () => {
+  it("averages each opponent's own OMW% (match-win based, floored)", () => {
     const player = Player.create("p1", "Ash");
-    const opponent = Player.create("o1", "Opponent");
-    player.recordMatchWin(opponent.getId(), 2, 3);
+    const opp1 = Player.create("o1", "Opponent 1");
+    const opp2 = Player.create("o2", "Opponent 2");
+    const x1 = Player.create("x1", "Opponent of opp1");
+    const x2 = Player.create("x2", "Opponent of opp2");
+
+    // player beat both opponents
+    player.recordMatchWin(opp1.getId(), 2, 0);
+    player.recordMatchWin(opp2.getId(), 2, 0);
+    opp1.recordMatchLoss(player.getId(), 1, 0, 2);
+    opp2.recordMatchLoss(player.getId(), 1, 0, 2);
+
+    // opp1 won their other match; opp2 lost theirs
+    opp1.recordMatchWin(x1.getId(), 2, 0);
+    x1.recordMatchLoss(opp1.getId(), 1, 0, 2);
+    opp2.recordMatchLoss(x2.getId(), 2, 0, 2);
+    x2.recordMatchWin(opp2.getId(), 2, 0);
 
     const tiebreakers = TiebreakerCalculator.calculateFor(player, [
       player,
-      opponent,
+      opp1,
+      opp2,
+      x1,
+      x2,
     ]);
 
-    expect(tiebreakers.gameWinPercentage).toBeCloseTo(2 / 3);
+    // opp1's OMW% = avg(floored(player MWP = 1), floored(x1 MWP = 0 -> 1/3)) = 2/3
+    // opp2's OMW% = avg(floored(player MWP = 1), floored(x2 MWP = 1)) = 1
+    expect(tiebreakers.opponentsOpponentsMatchWinPercentage).toBeCloseTo(
+      (2 / 3 + 1) / 2,
+    );
   });
 
-  it("a bye contributes a 2-0 game record toward the player's own GW%", () => {
+  it("defaults to the 33% floor for a player with no opponents at all", () => {
     const player = Player.create("p1", "Ash");
-    player.recordBye();
+    player.recordBye(); // only a bye, no real opponents
 
     const tiebreakers = TiebreakerCalculator.calculateFor(player, [player]);
 
-    expect(tiebreakers.gameWinPercentage).toBe(1);
+    expect(tiebreakers.opponentsOpponentsMatchWinPercentage).toBeCloseTo(1 / 3);
+  });
+});
+
+describe("TiebreakerCalculator.calculateFor — sumOfSquaresOfLosses", () => {
+  it("matches the official example: losses in rounds 2 and 7 yield 2^2 + 7^2 = 53", () => {
+    const player = Player.create("p1", "Ash");
+    const opp1 = Player.create("o1", "Opponent 1");
+    const opp2 = Player.create("o2", "Opponent 2");
+
+    player.recordMatchLoss(opp1.getId(), 2, 0, 2);
+    player.recordMatchLoss(opp2.getId(), 7, 0, 2);
+
+    const tiebreakers = TiebreakerCalculator.calculateFor(player, [
+      player,
+      opp1,
+      opp2,
+    ]);
+
+    expect(tiebreakers.sumOfSquaresOfLosses).toBe(4 + 49);
   });
 
-  it("averages opponents' GW% with the 33% floor applied", () => {
+  it("is 0 for a player who never lost a match", () => {
     const player = Player.create("p1", "Ash");
     const opponent = Player.create("o1", "Opponent");
-    player.recordMatchLoss(opponent.getId(), 0, 2);
-    opponent.recordMatchWin(player.getId(), 2, 2); // opponent's own perspective: 100% GW%
+    player.recordMatchWin(opponent.getId(), 2, 0);
 
     const tiebreakers = TiebreakerCalculator.calculateFor(player, [
       player,
       opponent,
     ]);
 
-    expect(tiebreakers.opponentsGameWinPercentage).toBeCloseTo(1);
+    expect(tiebreakers.sumOfSquaresOfLosses).toBe(0);
   });
 });
 
@@ -159,7 +204,7 @@ describe("TiebreakerCalculator.calculateForAll", () => {
     const p1 = Player.create("p1", "Ash");
     const p2 = Player.create("p2", "Misty");
     p1.recordMatchWin(p2.getId(), 2, 0);
-    p2.recordMatchLoss(p1.getId(), 0, 2);
+    p2.recordMatchLoss(p1.getId(), 1, 0, 2);
 
     const results = TiebreakerCalculator.calculateForAll([p1, p2]);
 
@@ -170,97 +215,56 @@ describe("TiebreakerCalculator.calculateForAll", () => {
 });
 
 describe("TiebreakerCalculator.compare", () => {
+  const base = {
+    matchWinPercentage: 1,
+    opponentsMatchWinPercentage: 0.5,
+    opponentsOpponentsMatchWinPercentage: 0.5,
+    sumOfSquaresOfLosses: 0,
+  };
+
   it("ranks higher match points first", () => {
-    const better = {
-      matchPoints: 6,
-      matchWinPercentage: 1,
-      opponentsMatchWinPercentage: 0,
-      gameWinPercentage: 0,
-      opponentsGameWinPercentage: 0,
-    };
-    const worse = {
-      matchPoints: 3,
-      matchWinPercentage: 0.5,
-      opponentsMatchWinPercentage: 1,
-      gameWinPercentage: 1,
-      opponentsGameWinPercentage: 1,
-    };
+    const better = { ...base, matchPoints: 6 };
+    const worse = { ...base, matchPoints: 3 };
 
     expect(TiebreakerCalculator.compare(better, worse)).toBeLessThan(0);
   });
 
   it("falls back to OMW% when match points are tied", () => {
     const better = {
+      ...base,
       matchPoints: 6,
-      matchWinPercentage: 1,
       opponentsMatchWinPercentage: 0.6,
-      gameWinPercentage: 0,
-      opponentsGameWinPercentage: 0,
+    };
+    const worse = { ...base, matchPoints: 6, opponentsMatchWinPercentage: 0.4 };
+
+    expect(TiebreakerCalculator.compare(better, worse)).toBeLessThan(0);
+  });
+
+  it("falls back to OGW% when match points and OMW% are tied", () => {
+    const better = {
+      ...base,
+      matchPoints: 6,
+      opponentsOpponentsMatchWinPercentage: 0.6,
     };
     const worse = {
+      ...base,
       matchPoints: 6,
-      matchWinPercentage: 1,
-      opponentsMatchWinPercentage: 0.4,
-      gameWinPercentage: 1,
-      opponentsGameWinPercentage: 1,
+      opponentsOpponentsMatchWinPercentage: 0.4,
     };
 
     expect(TiebreakerCalculator.compare(better, worse)).toBeLessThan(0);
   });
 
-  it("falls back to GW% when match points and OMW% are tied", () => {
-    const better = {
-      matchPoints: 6,
-      matchWinPercentage: 1,
-      opponentsMatchWinPercentage: 0.5,
-      gameWinPercentage: 0.8,
-      opponentsGameWinPercentage: 0,
-    };
-    const worse = {
-      matchPoints: 6,
-      matchWinPercentage: 1,
-      opponentsMatchWinPercentage: 0.5,
-      gameWinPercentage: 0.6,
-      opponentsGameWinPercentage: 1,
-    };
-
-    expect(TiebreakerCalculator.compare(better, worse)).toBeLessThan(0);
-  });
-
-  it("falls back to OGW% as the final tiebreaker", () => {
-    const better = {
-      matchPoints: 6,
-      matchWinPercentage: 1,
-      opponentsMatchWinPercentage: 0.5,
-      gameWinPercentage: 0.7,
-      opponentsGameWinPercentage: 0.6,
-    };
-    const worse = {
-      matchPoints: 6,
-      matchWinPercentage: 1,
-      opponentsMatchWinPercentage: 0.5,
-      gameWinPercentage: 0.7,
-      opponentsGameWinPercentage: 0.4,
-    };
+  it("falls back to DDD as the final tiebreaker, ranking fewer lost rounds higher", () => {
+    const better = { ...base, matchPoints: 6, sumOfSquaresOfLosses: 4 };
+    const worse = { ...base, matchPoints: 6, sumOfSquaresOfLosses: 53 };
 
     expect(TiebreakerCalculator.compare(better, worse)).toBeLessThan(0);
   });
 
   it("returns 0 when every tiebreaker is fully tied", () => {
-    const a = {
-      matchPoints: 6,
-      matchWinPercentage: 1,
-      opponentsMatchWinPercentage: 0.5,
-      gameWinPercentage: 0.7,
-      opponentsGameWinPercentage: 0.5,
-    };
-    const b = {
-      matchPoints: 6,
-      matchWinPercentage: 1,
-      opponentsMatchWinPercentage: 0.5,
-      gameWinPercentage: 0.7,
-      opponentsGameWinPercentage: 0.5,
-    };
+    const a = { ...base, matchPoints: 6 };
+    const b = { ...base, matchPoints: 6 };
 
     expect(TiebreakerCalculator.compare(a, b)).toBe(0);
   });

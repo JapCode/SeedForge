@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { useCases } from "@/infrastructure/composition-root";
 import { getSessionUserId } from "@/infrastructure/auth/getSessionUserId";
-import { TopCutSize } from "@/domain/entities/Tournament";
+import { TopCutSize, PairingMode } from "@/domain/entities/Tournament";
 
 export interface CreateTournamentFormState {
   error: string | null;
@@ -24,6 +24,8 @@ export async function createTournamentAction(
   const topCutSize =
     topCutSizeRaw === "" ? null : (Number(topCutSizeRaw) as TopCutSize);
   const useLegacyRuleset = formData.get("useLegacyRuleset") === "on";
+  const pairingMode: PairingMode =
+    formData.get("pairingMode") === "manual" ? "manual" : "automatic";
 
   let tournamentId: string;
   try {
@@ -32,6 +34,7 @@ export async function createTournamentAction(
       name,
       totalSwissRounds,
       topCutSize,
+      pairingMode,
       useLegacyRuleset,
     });
     tournamentId = tournament.getId();

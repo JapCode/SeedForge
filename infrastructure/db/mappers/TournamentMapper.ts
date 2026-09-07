@@ -3,6 +3,7 @@ import {
   TournamentProps,
   TournamentPhase,
   TopCutSize,
+  PairingMode,
 } from "../../../domain/entities/Tournament";
 import { Player, PlayerProps } from "../../../domain/entities/Player";
 import { Round, RoundStatus } from "../../../domain/entities/Round";
@@ -31,6 +32,7 @@ export interface SerializedTournament {
   phase: TournamentPhase;
   totalSwissRounds: number;
   topCutSize: TopCutSize;
+  pairingMode: PairingMode;
   ruleset: TournamentRulesetProps;
   players: PlayerProps[];
   rounds: SerializedRound[];
@@ -49,6 +51,7 @@ export class TournamentMapper {
       phase: props.phase,
       totalSwissRounds: props.totalSwissRounds,
       topCutSize: props.topCutSize,
+      pairingMode: props.pairingMode,
       ruleset: props.ruleset.toProps(),
       players: props.players.map((player) => player.toProps()),
       rounds: props.rounds.map((round) => {
@@ -86,6 +89,9 @@ export class TournamentMapper {
       phase: data.phase,
       totalSwissRounds: data.totalSwissRounds,
       topCutSize: data.topCutSize,
+      // Tournaments persisted before the pairing mode existed have no field;
+      // they are automatic by definition.
+      pairingMode: data.pairingMode ?? "automatic",
       ruleset: TournamentRuleset.fromProps(data.ruleset),
       players,
       rounds,

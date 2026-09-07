@@ -1,6 +1,9 @@
 import { Tournament, TournamentId } from "../../../domain/entities/Tournament";
 import { TopCutBracket } from "../../../domain/entities/TopCutBracket";
-import { TournamentRepository } from "../../ports/TournamentRepository";
+import {
+  TournamentRepository,
+  Pagination,
+} from "../../ports/TournamentRepository";
 import { TopCutBracketRepository } from "../../ports/TopCutBracketRepository";
 import { Logger } from "../../ports/Logger";
 import { IdGenerator } from "../../ports/IdGenerator";
@@ -21,10 +24,21 @@ export class InMemoryTournamentRepository implements TournamentRepository {
     return null;
   }
 
-  async findByOwnerId(ownerId: string): Promise<Tournament[]> {
-    return [...this.tournaments.values()].filter(
+  async findByOwnerId(
+    ownerId: string,
+    pagination?: Pagination,
+  ): Promise<Tournament[]> {
+    const owned = [...this.tournaments.values()].filter(
       (t) => t.getOwnerId() === ownerId,
     );
+    if (!pagination) return owned;
+    return owned.slice(pagination.offset, pagination.offset + pagination.limit);
+  }
+
+  async countByOwnerId(ownerId: string): Promise<number> {
+    return [...this.tournaments.values()].filter(
+      (t) => t.getOwnerId() === ownerId,
+    ).length;
   }
 
   async save(tournament: Tournament): Promise<void> {

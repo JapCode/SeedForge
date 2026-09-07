@@ -108,6 +108,8 @@ describe("RevertMatchResult", () => {
     expect(p2.hasPlayedAgainst(player1Id)).toBe(false);
     expect(p1.getGamesPlayed()).toBe(0);
     expect(p2.getGamesPlayed()).toBe(0);
+    expect(p1.getLostRoundNumbers()).toEqual([]);
+    expect(p2.getLostRoundNumbers()).toEqual([]);
     expect(persisted!.getRound(1).getMatch(matchId).isPending()).toBe(true);
   });
 
@@ -121,7 +123,7 @@ describe("RevertMatchResult", () => {
       requestingUserId: "u1",
       roundNumber: 1,
       matchId,
-      result: { type: "double_loss", player1Games: 1, player2Games: 1 },
+      result: { type: "double_loss", player1Games: 0, player2Games: 0 },
     });
 
     await revertMatchResult.execute({
@@ -136,6 +138,8 @@ describe("RevertMatchResult", () => {
       false,
     );
     expect(persisted!.getPlayer(player1Id).getGamesPlayed()).toBe(0);
+    expect(persisted!.getPlayer(player1Id).getLostRoundNumbers()).toEqual([]);
+    expect(persisted!.getPlayer(player2Id).getLostRoundNumbers()).toEqual([]);
   });
 
   it("reverts a draw (legacy ruleset)", async () => {

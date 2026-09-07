@@ -154,11 +154,19 @@ export class Match {
 
   /**
    * Reports a double loss: current Konami policy for when time is called
-   * and both players are still tied on game wins.
+   * and both players are still tied on game wins. A double loss is always
+   * scored 0-0: no points and no games count toward either player's
+   * game-win percentage.
    */
   reportDoubleLoss(player1Games: number, player2Games: number): void {
     this.assertNotBye();
     this.assertPending();
+
+    if (player1Games !== 0 || player2Games !== 0) {
+      throw new Error(
+        `A double loss is always scored 0-0, got ${player1Games}-${player2Games}`,
+      );
+    }
 
     this.result = { type: "double_loss", player1Games, player2Games };
   }

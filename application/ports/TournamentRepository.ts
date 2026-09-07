@@ -15,9 +15,22 @@ export class TournamentConcurrencyError extends Error {
   }
 }
 
+/**
+ * Optional slice for paginated queries. `offset` is 0-based and applied in
+ * the repository's stable order (most recently updated first).
+ */
+export interface Pagination {
+  limit: number;
+  offset: number;
+}
+
 export interface TournamentRepository {
   findById(id: TournamentId): Promise<Tournament | null>;
   findByShareToken(token: string): Promise<Tournament | null>;
-  findByOwnerId(ownerId: string): Promise<Tournament[]>;
+  findByOwnerId(
+    ownerId: string,
+    pagination?: Pagination,
+  ): Promise<Tournament[]>;
+  countByOwnerId(ownerId: string): Promise<number>;
   save(tournament: Tournament): Promise<void>;
 }

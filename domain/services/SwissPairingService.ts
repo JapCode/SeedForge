@@ -92,13 +92,14 @@ export class SwissPairingService {
   }
 
   /**
-   * Generates round 1. With no options, players are randomized. With a
-   * `seedOrder`, players are paired top-half-vs-bottom-half order instead
-   * (1st vs 2nd, 3rd vs 4th, ...) based on that ranking — useful for
-   * pre-seeded events, or for reproducing a real tournament's actual round 1.
-   * If there's an odd number of players, the lowest-seeded (or last
-   * shuffled) player receives the bye, mirroring the "weakest player gets
-   * the bye" rule used for every later round too.
+   * Generates round 1. With no options, players are shuffled and paired
+   * sequentially in the shuffled order (1st vs 2nd, 3rd vs 4th, ...) — a
+   * random draw. With a `seedOrder`, the same sequential pairing is applied
+   * to the provided ranking instead — useful for pre-seeded events, or for
+   * reproducing a real tournament's actual round 1. If there's an odd number
+   * of players, the lowest-seeded (or last shuffled) player receives the bye,
+   * mirroring the "weakest player gets the bye" rule used for every later
+   * round too.
    */
   static generateFirstRound(
     players: readonly Player[],
@@ -151,10 +152,16 @@ export class SwissPairingService {
 
   /**
    * Generates the next Swiss round for a tournament already in progress.
-   * Groups active players by match points (score groups), pairs within each
-   * group avoiding repeated opponents, and downfloats anyone who can't be
-   * paired within their own group to the next lower group. The bye (if
-   * needed) goes to the lowest-ranked active player who hasn't had one yet.
+   * Pairs the whole field with a single exhaustive backtracking search that
+   * prefers same-score-group pairings (KTS-style): the highest-ranked
+   * unpaired player always tries candidates from their own score group
+   * first, in standings order, then each lower score group in turn, always
+   * skipping opponents they have already played. Because the search is
+   * exhaustive over the entire field, a valid round is found whenever one
+   * exists — the old per-score-group pipeline could lock in a suboptimal
+   * downfloat and then fail on a case that was actually pairable. The bye
+   * (if needed) goes to the lowest-ranked active player who hasn't had one
+   * yet.
    *
    * `allPlayersForTiebreakers` should include every player the tournament has
    * ever had, including dropped ones, since a dropped player's record may
@@ -185,39 +192,30 @@ export class SwissPairingService {
     }
 
     const scoreGroups = this.groupByPoints(contenders);
-
-    const matches: Match[] = [];
-    let tableNumber = 1;
-    let floaters: Player[] = [];
-
-    for (const group of scoreGroups) {
-      const pool = [...floaters, ...group];
-      const { pairs, floaters: remainingFloaters } = this.pairWithinPool(pool);
-
-      for (const [player1, player2] of pairs) {
-        matches.push(
-          Match.createPairing(
-            this.matchId(roundNumber, tableNumber),
-            roundNumber,
-            tableNumber,
-            player1.getId(),
-            player2.getId(),
-          ),
-        );
-        tableNumber++;
-      }
-
-      floaters = remainingFloaters;
-    }
-
-    if (floaters.length > 0) {
+    const pairs = this.findGlobalMatching(contenders, scoreGroups);
+    if (pairs === null) {
       throw new Error(
-        `Could not find a valid pairing without repeated opponents for: ${floaters
+        `Could not find a valid pairing without repeated opponents for: ${contenders
           .map((p) => p.getId())
           .join(
             ", ",
           )}. Resolve round ${roundNumber} manually with SwissPairingService.buildManualRound.`,
       );
+    }
+
+    const matches: Match[] = [];
+    let tableNumber = 1;
+    for (const [player1, player2] of pairs) {
+      matches.push(
+        Match.createPairing(
+          this.matchId(roundNumber, tableNumber),
+          roundNumber,
+          tableNumber,
+          player1.getId(),
+          player2.getId(),
+        ),
+      );
+      tableNumber++;
     }
 
     if (byePlayer) {
@@ -236,7 +234,7 @@ export class SwissPairingService {
 
   /**
    * Sorts players best-to-worst using the official tiebreaker order
-   * (match points -> OMW% -> GW% -> OGW%), the same order used for standings.
+   * (match points -> OMW% -> OGW% -> DDD), the same order used for standings.
    */
   private static sortByStandings(
     players: readonly Player[],
@@ -289,60 +287,64 @@ export class SwissPairingService {
   }
 
   /**
-   * Greedily pairs players within a pool (a score group plus any floaters
-   * from the group above), avoiding repeated opponents. Always tries to pair
-   * the top-ranked remaining player first; if no valid opponent exists for
-   * them in the current pool, the lowest-ranked remaining player is floated
-   * out and the attempt is retried. Anyone left unpaired at the end is
-   * returned as a floater for the next (lower) score group to try.
+   * Exhaustive backtracking search for a perfect matching of `players` (must
+   * have even length) with no repeated opponents, preferring KTS-style
+   * same-score-group pairings. Returns null if no such matching exists.
    *
-   * Note: this is a greedy heuristic, not an exhaustive matching search — for
-   * the vast majority of real tournaments (where repeated-opponent conflicts
-   * within a single score group are rare) it finds a valid pairing. In a
-   * pathological case where a valid pairing exists but this heuristic can't
-   * find it, generateNextRound surfaces a clear error so the organizer can
-   * fall back to buildManualRound for that round.
+   * `players` must be sorted best-to-worst by standings and `scoreGroups`
+   * must be the score groups of the full field (in the same order). The
+   * highest-ranked remaining player is always paired first, trying
+   * candidates from their own score group in standings order, then each
+   * lower score group in turn. This makes the search deterministic and
+   * encodes the Swiss preference for pairing within the same score group and
+   * downfloating in standings order — a "worse" pairing is only chosen when
+   * the preferred one leads to a dead end later.
+   *
+   * Because the search is exhaustive over the whole field, it finds a valid
+   * round whenever one exists (unlike the old per-score-group pipeline,
+   * which locked in each group's pairs before seeing the rest of the field).
+   *
+   * Worst-case complexity is factorial in field size, but the score-group
+   * preference prunes the search aggressively and constraints are sparse in
+   * realistic tournaments (a handful of already-played opponents per
+   * player), so this is fast at the scale this app targets.
    */
-  private static pairWithinPool(pool: readonly Player[]): {
-    pairs: [Player, Player][];
-    floaters: Player[];
-  } {
-    const remaining = [...pool];
-    const pairs: [Player, Player][] = [];
-    const floaters: Player[] = [];
+  private static findGlobalMatching(
+    players: readonly Player[],
+    scoreGroups: Player[][],
+  ): [Player, Player][] | null {
+    if (players.length === 0) return [];
+    if (players.length % 2 !== 0) return null;
 
-    while (remaining.length > 0) {
-      if (remaining.length === 1) {
-        floaters.push(remaining.shift()!);
-        break;
-      }
+    const [first, ...rest] = players;
+    const firstPoints = first.getPoints();
+    const restIds = new Set(rest.map((p) => p.getId()));
 
-      const first = remaining[0];
-      const partnerIndex = remaining.findIndex(
-        (candidate, index) =>
-          index > 0 && !first.hasPlayedAgainst(candidate.getId()),
-      );
-
-      if (partnerIndex === -1) {
-        // `first` can't be paired with anyone left in this pool. Float the
-        // lowest-ranked remaining player (the last one) and try again.
-        const floated = remaining.pop()!;
-        if (floated.getId() === first.getId()) {
-          floaters.push(first);
-          remaining.length = 0;
-          break;
+    // Candidates in preference order: same score group first (in standings
+    // order), then each lower score group. No remaining player can have more
+    // points than `first`, since `players` is always a standings-ordered
+    // suffix of the field.
+    const candidates: Player[] = [];
+    let inFirstGroup = false;
+    for (const group of scoreGroups) {
+      if (group[0].getPoints() === firstPoints) inFirstGroup = true;
+      if (!inFirstGroup) continue;
+      for (const player of group) {
+        if (player.getId() !== first.getId() && restIds.has(player.getId())) {
+          candidates.push(player);
         }
-        floaters.push(floated);
-        continue;
       }
-
-      const partner = remaining[partnerIndex];
-      pairs.push([first, partner]);
-      remaining.splice(partnerIndex, 1);
-      remaining.shift();
     }
 
-    return { pairs, floaters };
+    for (const candidate of candidates) {
+      if (first.hasPlayedAgainst(candidate.getId())) continue;
+      const remaining = rest.filter((p) => p.getId() !== candidate.getId());
+      const subMatching = this.findGlobalMatching(remaining, scoreGroups);
+      if (subMatching !== null) {
+        return [[first, candidate], ...subMatching];
+      }
+    }
+    return null;
   }
 
   /**

@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { CreateTournament } from "../CreateTournament";
 import { RegisterPlayer } from "../RegisterPlayer";
 import { StartTournament } from "../StartTournament";
 import { GenerateNextRound } from "../GenerateNextRound";
+import { RegisterMatchResult } from "../RegisterMatchResult";
 import { TournamentNotOwnedError } from "../shared/loadOwnedTournament";
 import {
   InMemoryTournamentRepository,
@@ -10,6 +11,7 @@ import {
   SequentialIdGenerator,
 } from "./fakes";
 import { Tournament } from "../../../domain/entities/Tournament";
+import { Round } from "../../../domain/entities/Round";
 
 async function setUpTournamentWithPlayers(
   repository: InMemoryTournamentRepository,
@@ -67,6 +69,45 @@ async function completeRoundWithArbitraryResults(
   await repository.save(tournament);
 }
 
+/**
+ * Reports a 2-0 win for player1 on every match of the round through the real
+ * RegisterMatchResult use-case (so player stats stay in sync), then completes
+ * the round. Used to build real standings for the next round's pairing.
+ */
+async function reportPlayer1WinsAndComplete(
+  repository: InMemoryTournamentRepository,
+  logger: RecordingLogger,
+  tournamentId: string,
+  roundNumber: number,
+): Promise<void> {
+  const registerMatchResult = new RegisterMatchResult(repository, logger);
+  let tournament = (await repository.findById(tournamentId))!;
+  for (const match of tournament.getRound(roundNumber).getMatches()) {
+    if (match.isBye()) continue;
+    await registerMatchResult.execute({
+      tournamentId,
+      requestingUserId: "u1",
+      roundNumber,
+      matchId: match.getId(),
+      result: {
+        type: "win",
+        winnerId: match.getPlayer1Id(),
+        winnerGames: 2,
+        loserGames: 0,
+      },
+    });
+  }
+  tournament = (await repository.findById(tournamentId))!;
+  tournament.completeRound(roundNumber);
+  await repository.save(tournament);
+}
+
+function pairingsOf(round: Round): [string, string][] {
+  return round
+    .getMatches()
+    .map((match) => [match.getPlayer1Id(), match.getPlayer2Id()!]);
+}
+
 describe("GenerateNextRound", () => {
   let repository: InMemoryTournamentRepository;
   let logger: RecordingLogger;
@@ -78,6 +119,10 @@ describe("GenerateNextRound", () => {
     logger = new RecordingLogger();
     idGenerator = new SequentialIdGenerator();
     generateNextRound = new GenerateNextRound(repository, logger);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("generates round 1 automatically, pairing every registered player", async () => {
@@ -117,6 +162,128 @@ describe("GenerateNextRound", () => {
 
     expect(round.getMatches()[0].getPlayer1Id()).toBe(p1.getId());
     expect(round.getMatches()[0].getPlayer2Id()).toBe(p2.getId());
+  });
+
+  it("persists the round-1 random draw as the player order used for pairing", async () => {
+    const tournament = await setUpTournamentWithPlayers(
+      repository,
+      logger,
+      idGenerator,
+      ["Ash", "Misty", "Brock", "Gary"],
+    );
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const round1 = await generateNextRound.execute({
+      tournamentId: tournament.getId(),
+      requestingUserId: "u1",
+    });
+
+    const persisted = (await repository.findById(tournament.getId()))!;
+    expect(persisted.getPlayers().map((p) => p.getId())).toEqual([
+      "id-3",
+      "id-4",
+      "id-5",
+      "id-2",
+    ]);
+    expect(pairingsOf(round1)).toEqual([
+      ["id-3", "id-4"],
+      ["id-5", "id-2"],
+    ]);
+  });
+
+  it("reorders the players to an explicit seedOrder so it breaks later ties", async () => {
+    const tournament = await setUpTournamentWithPlayers(
+      repository,
+      logger,
+      idGenerator,
+      ["Ash", "Misty", "Brock", "Gary"],
+    );
+
+    const round1 = await generateNextRound.execute({
+      tournamentId: tournament.getId(),
+      requestingUserId: "u1",
+      seedOrder: ["id-3", "id-2", "id-5", "id-4"],
+    });
+
+    const persisted = (await repository.findById(tournament.getId()))!;
+    expect(persisted.getPlayers().map((p) => p.getId())).toEqual([
+      "id-3",
+      "id-2",
+      "id-5",
+      "id-4",
+    ]);
+    expect(pairingsOf(round1)).toEqual([
+      ["id-3", "id-2"],
+      ["id-5", "id-4"],
+    ]);
+  });
+
+  it("leaves the player order untouched when round 1 is built from manual pairings", async () => {
+    const tournament = await setUpTournamentWithPlayers(
+      repository,
+      logger,
+      idGenerator,
+      ["Ash", "Misty", "Brock", "Gary"],
+    );
+    const [p1, p2, p3, p4] = tournament.getPlayers();
+
+    await generateNextRound.execute({
+      tournamentId: tournament.getId(),
+      requestingUserId: "u1",
+      manualPairings: [
+        { player1Id: p1.getId(), player2Id: p2.getId() },
+        { player1Id: p3.getId(), player2Id: p4.getId() },
+      ],
+    });
+
+    const persisted = (await repository.findById(tournament.getId()))!;
+    expect(persisted.getPlayers().map((p) => p.getId())).toEqual([
+      "id-2",
+      "id-3",
+      "id-4",
+      "id-5",
+    ]);
+  });
+
+  it("pairs fully-tied players in round 2 according to the persisted round-1 draw", async () => {
+    const tournament = await setUpTournamentWithPlayers(
+      repository,
+      logger,
+      idGenerator,
+      ["Ash", "Misty", "Brock", "Gary", "May", "Max"],
+    );
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const round1 = await generateNextRound.execute({
+      tournamentId: tournament.getId(),
+      requestingUserId: "u1",
+    });
+    expect(pairingsOf(round1)).toEqual([
+      ["id-3", "id-4"],
+      ["id-5", "id-6"],
+      ["id-7", "id-2"],
+    ]);
+
+    await reportPlayer1WinsAndComplete(
+      repository,
+      logger,
+      tournament.getId(),
+      1,
+    );
+
+    const round2 = await generateNextRound.execute({
+      tournamentId: tournament.getId(),
+      requestingUserId: "u1",
+    });
+
+    // The three winners (id-3, id-5, id-7) are fully tied on every
+    // tiebreaker, so the persisted draw order decides: id-3 vs id-5, and
+    // id-7 downfloats against the first 0-point player.
+    expect(pairingsOf(round2)).toEqual([
+      ["id-3", "id-5"],
+      ["id-7", "id-4"],
+      ["id-6", "id-2"],
+    ]);
   });
 
   it("generates round 1 from manual pairings instead of automatically", async () => {

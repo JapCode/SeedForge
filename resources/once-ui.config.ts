@@ -50,11 +50,11 @@ const fonts = {
 export const style = {
   theme: "system", // system | dark | light
   neutral: "slate", // sand | gray | slate
-  brand: "indigo", // blue | indigo | ... | cyan
-  accent: "cyan", // blue | indigo | ... | cyan
+  brand: "violet", // blue | indigo | ... | cyan
+  accent: "magenta", // blue | indigo | ... | cyan
   solid: "color", // color | contrast | inverse
   solidStyle: "flat", // flat | plastic
-  border: "conservative", // rounded | playful | conservative
+  border: "playful", // rounded | playful | conservative
   surface: "translucent", // filled | translucent
   transition: "all", // all | micro | macro | none
   scaling: "100", // 90 | 95 | 100 | 105 | 110

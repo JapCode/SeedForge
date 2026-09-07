@@ -74,12 +74,14 @@ export class RevertMatchResult {
 
         winner.revertMatchResult(
           loser.getId(),
+          command.roundNumber,
           3,
           previousResult.winnerGames,
           totalGames,
         );
         loser.revertMatchResult(
           winner.getId(),
+          command.roundNumber,
           0,
           previousResult.loserGames,
           totalGames,
@@ -92,12 +94,14 @@ export class RevertMatchResult {
           previousResult.player1Games + previousResult.player2Games;
         player1.revertMatchResult(
           player2.getId(),
+          command.roundNumber,
           1,
           previousResult.player1Games,
           totalGames,
         );
         player2.revertMatchResult(
           player1.getId(),
+          command.roundNumber,
           1,
           previousResult.player2Games,
           totalGames,
@@ -110,12 +114,14 @@ export class RevertMatchResult {
           previousResult.player1Games + previousResult.player2Games;
         player1.revertMatchResult(
           player2.getId(),
+          command.roundNumber,
           0,
           previousResult.player1Games,
           totalGames,
         );
         player2.revertMatchResult(
           player1.getId(),
+          command.roundNumber,
           0,
           previousResult.player2Games,
           totalGames,

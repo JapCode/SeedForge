@@ -57,18 +57,27 @@ describe("Player match results", () => {
   it("awards 0 points and still registers games/opponent on a loss", () => {
     const player = Player.create("p1", "Ash");
 
-    player.recordMatchLoss("p2", 0, 2);
+    player.recordMatchLoss("p2", 1, 0, 2);
 
     expect(player.getPoints()).toBe(0);
     expect(player.hasPlayedAgainst("p2")).toBe(true);
     expect(player.getGamesPlayed()).toBe(2);
   });
 
+  it("records the round number of each loss (for the DDD tiebreaker)", () => {
+    const player = Player.create("p1", "Ash");
+
+    player.recordMatchLoss("p2", 2, 0, 2);
+    player.recordMatchLoss("p3", 7, 0, 2);
+
+    expect(player.getLostRoundNumbers()).toEqual([2, 7]);
+  });
+
   it("accumulates points and games across multiple rounds", () => {
     const player = Player.create("p1", "Ash");
 
     player.recordMatchWin("p2", 2, 3);
-    player.recordMatchLoss("p3", 1, 2);
+    player.recordMatchLoss("p3", 2, 1, 2);
     player.recordMatchDraw("p4", 1, 2);
 
     expect(player.getPoints()).toBe(3 + 0 + 1);
@@ -111,7 +120,7 @@ describe("Player rollback", () => {
     const player = Player.create("p1", "Ash");
     player.recordMatchWin("p2", 2, 3);
 
-    player.revertMatchResult("p2", 3, 2, 3);
+    player.revertMatchResult("p2", 1, 3, 2, 3);
 
     expect(player.getPoints()).toBe(0);
     expect(player.hasPlayedAgainst("p2")).toBe(false);
@@ -123,7 +132,7 @@ describe("Player rollback", () => {
     const player = Player.create("p1", "Ash");
     player.recordMatchDraw("p2", 1, 2);
 
-    player.revertMatchResult("p2", 1, 1, 2);
+    player.revertMatchResult("p2", 1, 1, 1, 2);
 
     expect(player.getPoints()).toBe(0);
     expect(player.hasPlayedAgainst("p2")).toBe(false);
@@ -134,11 +143,21 @@ describe("Player rollback", () => {
     player.recordMatchWin("p2", 2, 3);
     player.recordMatchWin("p3", 2, 2);
 
-    player.revertMatchResult("p2", 3, 2, 3);
+    player.revertMatchResult("p2", 1, 3, 2, 3);
 
     expect(player.getPoints()).toBe(3);
     expect(player.hasPlayedAgainst("p2")).toBe(false);
     expect(player.hasPlayedAgainst("p3")).toBe(true);
+  });
+
+  it("reverting a loss removes that round from the lost-round list", () => {
+    const player = Player.create("p1", "Ash");
+    player.recordMatchLoss("p2", 2, 0, 2);
+    player.recordMatchLoss("p3", 7, 0, 2);
+
+    player.revertMatchResult("p2", 2, 0, 0, 2);
+
+    expect(player.getLostRoundNumbers()).toEqual([7]);
   });
 
   it("reverting a bye restores hadBye to false and removes the 3 points", () => {
@@ -198,11 +217,21 @@ describe("Player.toProps / fromProps round-trip", () => {
   it("reconstructs an identical player from its props", () => {
     const original = Player.create("p1", "Ash");
     original.recordMatchWin("p2", 2, 3);
+    original.recordMatchLoss("p3", 2, 0, 2);
     original.assignTopCutSeed(4);
 
     const rebuilt = Player.fromProps(original.toProps());
 
     expect(rebuilt.toProps()).toEqual(original.toProps());
+  });
+
+  it("defaults lostRoundNumbers to an empty list when the field is missing (old persisted data)", () => {
+    const props = Player.create("p1", "Ash").toProps();
+    delete (props as Partial<typeof props>).lostRoundNumbers;
+
+    const rebuilt = Player.fromProps(props);
+
+    expect(rebuilt.getLostRoundNumbers()).toEqual([]);
   });
 
   it("toProps returns a defensive copy of opponentIds", () => {

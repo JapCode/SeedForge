@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Column, Button, Text } from "@once-ui-system/core";
+import { Column, Button, Text, useToast } from "@once-ui-system/core";
 import { ActionResult } from "./actions";
 
 interface ActionButtonProps {
@@ -9,6 +9,7 @@ interface ActionButtonProps {
   pendingLabel: string;
   action: () => Promise<ActionResult>;
   variant?: "primary" | "secondary" | "tertiary" | "danger";
+  successMessage?: string;
 }
 
 export const ActionButton = ({
@@ -16,9 +17,11 @@ export const ActionButton = ({
   pendingLabel,
   action,
   variant,
+  successMessage,
 }: ActionButtonProps) => {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   function handleClick() {
     setError(null);
@@ -26,6 +29,9 @@ export const ActionButton = ({
       const result = await action();
       if (result.error) {
         setError(result.error);
+        addToast({ variant: "danger", message: result.error });
+      } else if (successMessage) {
+        addToast({ variant: "success", message: successMessage });
       }
     });
   }
