@@ -38,6 +38,7 @@ export const LandingFooter = () => {
         vertical="center"
         wrap
         gap="16"
+        s={{ direction: "column", horizontal: "center" }}
       >
         <Row gap="12" vertical="center">
           <Flex

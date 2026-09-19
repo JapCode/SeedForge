@@ -48,6 +48,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
       <Column
         maxWidth={28}
         fillWidth
+        paddingX="16"
         gap="24"
         horizontal="center"
         position="relative"

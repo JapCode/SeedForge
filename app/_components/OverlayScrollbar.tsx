@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+
+function subscribeToCoarsePointer(callback: () => void) {
+  const mql = window.matchMedia("(pointer: coarse)");
+  mql.addEventListener("change", callback);
+  return () => mql.removeEventListener("change", callback);
+}
 
 /**
  * Thin overlay scrollbar for the document, replacing the native one (which
@@ -10,12 +16,13 @@ import { useEffect, useRef, useState } from "react";
  */
 export const OverlayScrollbar = () => {
   // Touch devices already use overlay scrollbars; a custom bar here would
-  // only steal touch gestures near the edge. Lazy init keeps SSR output
-  // identical (the bar is always rendered, just inert when disabled).
-  const [enabled] = useState(
-    () =>
-      typeof window === "undefined" ||
-      !window.matchMedia("(pointer: coarse)").matches,
+  // only steal touch gestures near the edge. useSyncExternalStore keeps
+  // the server and initial client snapshots identical (always true),
+  // then reacts to pointer changes after hydration.
+  const enabled = useSyncExternalStore(
+    subscribeToCoarsePointer,
+    () => !window.matchMedia("(pointer: coarse)").matches,
+    () => true,
   );
   const [thumbTop, setThumbTop] = useState(0);
   const [thumbHeight, setThumbHeight] = useState(32);

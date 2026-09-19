@@ -227,6 +227,70 @@ html.theme-switching *::after {
   scroll-margin-top: 6rem;
 }
 
+/* Proof items: responsive layout for different breakpoints.
+   Desktop (≥1024px): 4 columns, cards, horizontal
+   Tablet (768-1023px): 2 columns, no cards, horizontal
+   Mobile (≤768px): 2 columns, cards, stacked icons */
+.sf-proof-item {
+  transition: all 0.2s ease;
+}
+
+/* Tablet: remove card chrome */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sf-proof-item {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .sf-proof-item .sf-proof-inner {
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+}
+
+/* Mobile: stacked icons */
+@media (max-width: 767px) {
+  .sf-proof-item .sf-proof-inner {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .sf-proof-item .sf-proof-text {
+    align-items: center !important;
+  }
+}
+
+/* Dialog: render above SiteNav (z-index: 10) on mobile. */
+@media (max-width: 1024px) {
+  [role="dialog"] {
+    z-index: 11 !important;
+  }
+}
+
+/* Mobile touch targets: ensure interactive elements have minimum 44x44px
+   touch target size on touch devices. */
+@media (pointer: coarse) {
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Safe area padding for devices with notches/home indicators. */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
 /* Demo standings table (hero). The Once UI Table forces a 32rem min-width
    and renders headers at 300 — on small screens the OMW%/OGW% columns are
    hidden and the percentages fold into a compact line under the player

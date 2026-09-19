@@ -185,7 +185,7 @@ const steps = [
 const proofs = [
   {
     icon: "radialGauge" as const,
-    title: "Desempates oficiales KTS",
+    title: "Desempates KTS",
     sub: "Pts → OMW% → OGW% → DDD · piso 33%",
   },
   {
@@ -298,24 +298,51 @@ export const HowItWorks = () => {
           Menos planillas, más partidas
         </Text>
         {/* Proof items: an explicit grid (4 across, 2×2 below the s
-            breakpoint) so the spacing stays even at every width — no
-            flex-wrap orphans or stretched single items. */}
-        <Grid fillWidth columns={4} gap="24" s={{ columns: 2 }}>
+            breakpoint, single column on xs) so the spacing stays even at
+            every width — no flex-wrap orphans or stretched single items. */}
+        <Grid
+          fillWidth
+          columns={4}
+          gap="16"
+          m={{ columns: 2 }}
+          s={{ columns: 2 }}
+          xs={{ columns: 2 }}
+        >
           {proofs.map((proof) => (
-            <Flex
+            <Card
               key={proof.title}
-              gap="8"
-              vertical="center"
-              horizontal="center"
+              className="sf-proof-item"
+              fillWidth
+              padding="16"
+              radius="m"
+              border="neutral-alpha-weak"
+              borderStyle="solid"
+              borderWidth={1}
             >
-              <Icon name={proof.icon} size="s" onBackground="brand-medium" />
-              <Column gap="2">
-                <Text variant="body-strong-s">{proof.title}</Text>
-                <Text variant="label-default-xs" onBackground="neutral-weak">
-                  {proof.sub}
-                </Text>
-              </Column>
-            </Flex>
+              <Flex className="sf-proof-inner" gap="12" vertical="start">
+                <Flex
+                  horizontal="center"
+                  vertical="center"
+                  width="40"
+                  height="40"
+                  radius="m"
+                  background="brand-alpha-medium"
+                  flex={0}
+                >
+                  <Icon
+                    name={proof.icon}
+                    size="s"
+                    onBackground="brand-medium"
+                  />
+                </Flex>
+                <Column gap="2" className="sf-proof-text">
+                  <Text variant="body-strong-s">{proof.title}</Text>
+                  <Text variant="label-default-xs" onBackground="neutral-weak">
+                    {proof.sub}
+                  </Text>
+                </Column>
+              </Flex>
+            </Card>
           ))}
         </Grid>
       </Column>

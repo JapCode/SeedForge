@@ -27,7 +27,7 @@ const Home = async () => {
   const primaryCtaHref = userId ? "/crear" : "/registro";
 
   return (
-    <Column fillWidth>
+    <Column fillWidth paddingX="16">
       <Hero primaryCtaHref={primaryCtaHref} />
 
       <Column fillWidth horizontal="center" paddingY="40" gap="80">

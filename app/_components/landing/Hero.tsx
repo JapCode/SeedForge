@@ -34,11 +34,13 @@ export const Hero = ({ primaryCtaHref }: { primaryCtaHref: string }) => {
         horizontal="center"
         vertical="center"
         gap="40"
+        s={{ direction: "column", horizontal: "center" }}
       >
         {/* Copy column */}
         <Column
           gap="24"
           style={{ flex: "1 1 calc(50% - 20px)", minWidth: "20rem" }}
+          s={{ style: { minWidth: 0, flex: "1 1 100%" } }}
         >
           <Row gap="8" vertical="center">
             <Icon name="sparkle" size="s" onBackground="brand-medium" />
@@ -63,7 +65,7 @@ export const Hero = ({ primaryCtaHref }: { primaryCtaHref: string }) => {
             tabla en vivo desde su teléfono.
           </Text>
 
-          <Row gap="16" wrap>
+          <Row gap="16" wrap s={{ direction: "column", horizontal: "start" }}>
             <Button
               variant="primary"
               size="l"
@@ -85,6 +87,7 @@ export const Hero = ({ primaryCtaHref }: { primaryCtaHref: string }) => {
           fillWidth
           position="relative"
           style={{ flex: "1 1 calc(50% - 20px)", minWidth: "20rem" }}
+          s={{ style: { minWidth: 0, flex: "1 1 100%" } }}
         >
           <Flex
             position="absolute"

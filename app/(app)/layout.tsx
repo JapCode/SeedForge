@@ -16,7 +16,7 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <Column fillWidth>
+    <Column fillWidth paddingX="16">
       <Column fillWidth horizontal="center">
         {children}
       </Column>

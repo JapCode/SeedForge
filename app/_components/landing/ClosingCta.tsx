@@ -27,6 +27,7 @@ export const ClosingCta = ({ primaryCtaHref }: { primaryCtaHref: string }) => {
         gap="16"
         center
         padding="48"
+        s={{ style: { padding: "24px" } }}
         radius="l"
         background="brand-alpha-weak"
         border="brand-alpha-medium"
@@ -44,7 +45,12 @@ export const ClosingCta = ({ primaryCtaHref }: { primaryCtaHref: string }) => {
         >
           Crea un torneo en menos de un minuto y empieza a registrar jugadores.
         </Text>
-        <Row gap="16" wrap horizontal="center">
+        <Row
+          gap="16"
+          wrap
+          horizontal="center"
+          s={{ direction: "column", horizontal: "center" }}
+        >
           <Button
             variant="primary"
             size="l"

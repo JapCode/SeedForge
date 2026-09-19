@@ -42,7 +42,7 @@ results → complete rounds → advance to top cut → complete → share standi
 - Rulesets: current (no draws; 50-min matches; time-out ties resolve as double
   loss) and legacy (draws allowed; 40-min) selectable per tournament.
 - Points 3–1–0; bye = 3 points + 2–0 record, max one per player, never counted
-  as an opponent. Tiebreak order match points → OMW% → GW% → OGW% with a 33%
+  as an opponent. Tiebreak order match points → OMW% → OGW% → DDD with a 33%
   opponent floor.
 - Swiss pairing is a greedy downfloat algorithm (documented limitation), with
   manual/audit pairing via `buildManualRound` guaranteeing every active player
