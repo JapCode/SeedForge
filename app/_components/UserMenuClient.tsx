@@ -43,6 +43,13 @@ export const UserMenuClient = () => {
           <Button
             variant="tertiary"
             size="s"
+            label="Configuración"
+            prefixIcon="settings"
+            href="/configuracion"
+          />
+          <Button
+            variant="tertiary"
+            size="s"
             label="Cerrar sesión"
             prefixIcon="close"
             onClick={handleSignOut}

@@ -263,13 +263,6 @@ html.theme-switching *::after {
   }
 }
 
-/* Dialog: render above SiteNav (z-index: 10) on mobile. */
-@media (max-width: 1024px) {
-  [role="dialog"] {
-    z-index: 11 !important;
-  }
-}
-
 /* Mobile touch targets: ensure interactive elements have minimum 44x44px
    touch target size on touch devices. */
 @media (pointer: coarse) {

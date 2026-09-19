@@ -44,7 +44,7 @@ export const SiteNav = () => {
       fillWidth
       position="sticky"
       top={0}
-      zIndex={10}
+      zIndex={8}
       padding="16"
       paddingX="32"
       horizontal="center"
@@ -138,7 +138,7 @@ export const SiteNav = () => {
           {isPending ? (
             <Flex gap="12" />
           ) : isSignedIn ? (
-            <UserMenuClient />
+            <UserMenuClient key={pathname} />
           ) : (
             <Flex gap="12">
               <Flex xs={{ hide: true }}>
